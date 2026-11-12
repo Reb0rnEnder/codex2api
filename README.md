@@ -2,6 +2,8 @@
   <img src="assets/banner.svg" alt="Codex2API" width="100%">
 </p>
 
+Maintained fork: adds [ChatGPT BasisPoints](docs/BASISPOINTS.md), [Zcode accounts and plan claiming](docs/ZCODE.md), and expanded English localization. [Upstream release syncing and fork releases](docs/FORK_MAINTENANCE.md).
+
 <p align="center">
   <b>English</b> | <a href="README.zh-CN.md">中文</a>
 </p>

@@ -239,6 +239,8 @@ func (h *Handler) buildAccountResponse(
 		AccountType:                  row.Type,
 		AccessTokenType:              accountAccessTokenType(row),
 		OpenAIResponsesAPI:           isOpenAIResponsesAccount,
+		BasisPoints:                  row.GetCredential("basispoints") == "true",
+		Zcode:                        row.GetCredential("zcode") == "true",
 		GrokAPI:                      isGrokAccount,
 		AntigravityAPI:               isAntigravityAccount,
 		ClaudeAPI:                    isClaudeAccount,

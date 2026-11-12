@@ -1,3 +1,4 @@
+import uiI18n from "../i18n";
 import {
   useCallback,
   useEffect,
@@ -373,14 +374,14 @@ export default function ChipInput({
               <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">
                 {draft.trim()
                   ? isZh
-                    ? `筛选 “${draft.trim()}” · ${availableOptions.length} 项`
+                    ? uiI18n.t("uiExtra.chipInput.filterValueValueItems", { value0: (draft.trim()), value1: (availableOptions.length) })
                     : `Filter “${draft.trim()}” · ${availableOptions.length}`
                   : value.length > 0
                     ? isZh
-                      ? `已选 ${value.length} · 还可选 ${availableOptions.length}（可多选）`
+                      ? uiI18n.t("uiExtra.chipInput.valueSelectedValueAvailableMultipleSelections", { value0: (value.length), value1: (availableOptions.length) })
                       : `${value.length} selected · ${availableOptions.length} left · multi-select`
                     : isZh
-                      ? `可选 ${availableOptions.length} 项 · 可多选 · 留空 = 全部`
+                      ? uiI18n.t("uiExtra.chipInput.valueOptionsMultipleSelectionsEmptyMeansAll", { value0: (availableOptions.length) })
                       : `${availableOptions.length} options · multi-select · empty = all`}
               </span>
             </div>
@@ -403,10 +404,10 @@ export default function ChipInput({
                 <div className="px-3 py-6 text-center text-xs text-muted-foreground">
                   {draft.trim()
                     ? isZh
-                      ? '无匹配项，可直接回车添加自定义值'
+                      ? uiI18n.t("uiExtra.chipInput.noMatchesPressEnterToAddA")
                       : 'No match — press Enter to add custom value'
                     : isZh
-                      ? '没有更多可选项'
+                      ? uiI18n.t("uiExtra.chipInput.noMoreOptions")
                       : 'No more options'}
                 </div>
               ) : (
@@ -466,7 +467,7 @@ export default function ChipInput({
                   }}
                 >
                   <span className="truncate">
-                    {isZh ? `添加 “${draft.trim()}”` : `Add “${draft.trim()}”`}
+                    {isZh ? uiI18n.t("uiExtra.chipInput.addValue", { value0: (draft.trim()) }) : `Add “${draft.trim()}”`}
                   </span>
                 </button>
               </div>
@@ -513,8 +514,8 @@ export default function ChipInput({
                   e.stopPropagation()
                 }}
                 className="inline-flex size-5 shrink-0 items-center justify-center rounded-md text-primary/80 transition-colors hover:bg-primary/20 hover:text-primary"
-                aria-label={isZh ? `删除 ${chip}` : `Remove ${chip}`}
-                title={isZh ? '删除' : 'Remove'}
+                aria-label={isZh ? uiI18n.t("uiExtra.intelligenceCheck.deleteValue", { value0: (chip) }) : `Remove ${chip}`}
+                title={isZh ? uiI18n.t("uiExtra.chipInput.delete") : 'Remove'}
               >
                 <X className="size-3.5" strokeWidth={2.25} />
               </button>
@@ -544,7 +545,7 @@ export default function ChipInput({
           onFocus={() => {
             if (hasOptions) setShowDropdown(true)
           }}
-          placeholder={value.length === 0 ? placeholder : isZh ? '继续添加…' : 'Add more…'}
+          placeholder={value.length === 0 ? placeholder : isZh ? uiI18n.t("uiExtra.chipInput.addMore") : 'Add more…'}
           disabled={disabled}
           className="min-w-[6rem] flex-1 bg-transparent py-0.5 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
         />

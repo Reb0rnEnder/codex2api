@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next'
 import zh from './locales/zh.json'
 import zhTW from './locales/zh-TW.json'
 import en from './locales/en.json'
+import { languageFallbacks } from './lib/languageFallbacks'
 
 const LANG_KEY = 'lang'
 
@@ -21,10 +22,7 @@ i18n.use(initReactI18next).init({
     en: { translation: en },
   },
   lng: getInitialLang(),
-  fallbackLng: {
-    'zh-TW': ['zh'],
-    default: ['zh'],
-  },
+  fallbackLng: languageFallbacks,
   interpolation: {
     escapeValue: false,
   },

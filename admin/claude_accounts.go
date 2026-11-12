@@ -365,7 +365,7 @@ func (h *Handler) RefreshClaudeModels(c *gin.Context) {
 		writeError(c, http.StatusBadRequest, "账号缺少 access_token,请先刷新或重新导入")
 		return
 	}
-	models, ferr := auth.NewClaudeAuth(h.resolveClaudeModelProxy(id, row.ProxyURL)).FetchModelsWithCredentialsAndHeaders(ctx, accessToken, row.GetCredential(auth.ClaudeAuthKindCredentialKey), row.GetCredential(auth.ClaudeBaseURLCredentialKey), row.GetCredentialStringMap("custom_headers"), row.GetCredential(auth.ClaudeFingerprintModeCredentialKey))
+	models, ferr := h.fetchClaudeRowModels(ctx, row)
 	if ferr != nil {
 		writeError(c, http.StatusBadGateway, "拉取可用模型失败: "+ferr.Error())
 		return
@@ -421,7 +421,7 @@ func (h *Handler) refreshAllClaudeModels(ctx context.Context) (refreshed, failed
 			failed++
 			continue
 		}
-		models, ferr := auth.NewClaudeAuth(h.resolveClaudeModelProxy(row.ID, row.ProxyURL)).FetchModelsWithCredentialsAndHeaders(ctx, accessToken, row.GetCredential(auth.ClaudeAuthKindCredentialKey), row.GetCredential(auth.ClaudeBaseURLCredentialKey), row.GetCredentialStringMap("custom_headers"), row.GetCredential(auth.ClaudeFingerprintModeCredentialKey))
+		models, ferr := h.fetchClaudeRowModels(ctx, row)
 		if ferr != nil || len(models) == 0 {
 			failed++
 			continue

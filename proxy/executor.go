@@ -841,6 +841,27 @@ func ExecuteRequest(ctx context.Context, account *auth.Account, requestBody []by
 }
 
 func ExecuteOpenAIResponsesRequest(ctx context.Context, account *auth.Account, requestBody []byte, proxyOverride string, headers http.Header) (upstreamResponse *http.Response, upstreamErr error) {
+	if account.IsZcode() {
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		body, err := convertCanonicalGrokResponsesBody(GrokProtocolMessages, requestBody)
+		if err != nil {
+			return nil, ErrBadRequest(err.Error())
+		}
+		body = jsonbody.SetBool(body, "stream", true)
+		resp, err := executeZcodeMessages(ctx, account, body, proxyOverride)
+		if err == nil {
+			adaptGrokProtocolResponse(resp, GrokProtocolMessages, gjson.GetBytes(requestBody, "model").String(), true)
+			if !gjson.GetBytes(requestBody, "stream").Bool() {
+				return zcodeNonStreamResponses(ctx, resp)
+			}
+		}
+		return resp, err
+	}
+	if account.IsBasisPoints() && rawResponsesBodyShouldForceHTTPForImageGeneration(requestBody) {
+		return nil, ErrBadRequest("BasisPoints accounts do not support image generation")
+	}
 	if ctx == nil {
 		ctx = context.Background()
 	}

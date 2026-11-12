@@ -184,6 +184,9 @@ type Account struct {
 	ProxyURL             string
 	CustomHeaders        map[string]string
 	UpstreamType         string
+	BasisPoints          bool
+	Zcode                bool
+	ZcodeDeviceID        string
 	AntigravityProjectID string
 	// AntigravityPlanKey is the plan_allow key derived from the persisted
 	// entitlement tier ids (free/pro/ultra/standard, "api" for API keys).
@@ -602,6 +605,9 @@ func (a *Account) isOpenAIResponsesAPILocked() bool {
 	if a == nil {
 		return false
 	}
+	if a.BasisPoints || a.Zcode {
+		return true
+	}
 	return strings.EqualFold(strings.TrimSpace(a.UpstreamType), UpstreamOpenAIResponses) &&
 		strings.TrimSpace(a.BaseURL) != "" &&
 		strings.TrimSpace(a.APIKey) != ""
@@ -763,6 +769,9 @@ func (a *Account) OpenAIResponsesCredentials() (baseURL, apiKey string) {
 	}
 	a.mu.RLock()
 	defer a.mu.RUnlock()
+	if a.BasisPoints {
+		return BasisPointsBaseURL, strings.TrimSpace(a.AccessToken)
+	}
 	if !a.isOpenAIResponsesAPILocked() {
 		return "", ""
 	}
@@ -6242,6 +6251,14 @@ func (s *Store) buildAccountFromRow(ctx context.Context, row *database.AccountRo
 		claudeSessionWindow:          claudeSessionWindowForRow(upstreamType, s.ClaudeSessionWindowLimit()),
 	}
 	account.AddedAt.Store(row.CreatedAt.UnixNano())
+	account.BasisPoints = row.GetCredential("basispoints") == "true"
+	account.Zcode = row.GetCredential("zcode") == "true"
+	account.ZcodeDeviceID = row.GetCredential("zcode_device_id")
+	if account.BasisPoints {
+		account.BaseURL = BasisPointsBaseURL
+		account.CodexClientMetadataMode = CodexClientMetadataModeOff
+		account.ResponsesUpstreamTransport = OpenAIResponsesTransportWebsocket
+	}
 	if strings.EqualFold(strings.TrimSpace(upstreamType), UpstreamClaude) {
 		if observedRaw := strings.TrimSpace(row.GetCredential(ClaudeUsageProbeAtCredentialKey)); observedRaw != "" {
 			if observedAt, parseErr := time.Parse(time.RFC3339, observedRaw); parseErr == nil {
@@ -6410,7 +6427,7 @@ func (s *Store) buildAccountFromRow(ctx context.Context, row *database.AccountRo
 			}
 		}
 	}
-	if account.isClaudeAPIKeyLocked() {
+	if account.isClaudeAPIKeyLocked() && !account.Zcode {
 		account.RefreshToken = ""
 		account.SessionToken = ""
 		account.ExpiresAt = time.Time{}
@@ -7453,7 +7470,7 @@ func (s *Store) lazyNeedsDispatchRefresh(acc *Account) bool {
 		return false
 	}
 	acc.mu.RLock()
-	openAIResponses := acc.isOpenAIResponsesAPILocked()
+	openAIResponses := acc.isOpenAIResponsesAPILocked() && !acc.BasisPoints
 	hasRefreshCredential := strings.TrimSpace(acc.RefreshToken) != "" || strings.TrimSpace(acc.SessionToken) != ""
 	acc.mu.RUnlock()
 	return !openAIResponses && hasRefreshCredential && acc.NeedsRefresh()

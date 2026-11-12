@@ -42,10 +42,10 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
     .filter((cooldown) => !cooldown.reset_at || new Date(cooldown.reset_at).getTime() > Date.now())
     .map((cooldown) => cooldown.model.toLowerCase())), [account.model_cooldowns]);
   const modelOptions = useMemo(() => {
-    const configured = (account.models ?? []).map((item) => item.trim()).filter((item) => item.toLowerCase().startsWith("claude-"));
-    const base = configured.length > 0 ? configured : ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"];
+    const configured = (account.models ?? []).map((item) => item.trim()).filter((item) => item.toLowerCase().startsWith(account.zcode ? "glm-" : "claude-"));
+    const base = configured.length > 0 || account.zcode ? configured : ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"];
     return [...base.filter((item) => !cooled.has(item.toLowerCase())), ...base.filter((item) => cooled.has(item.toLowerCase()))];
-  }, [account.models, cooled]);
+  }, [account.models, account.zcode, cooled]);
   const [model, setModel] = useState(modelOptions[0] || "");
   useEffect(() => {
     if (!modelOptions.includes(model)) setModel(modelOptions[0] || "");

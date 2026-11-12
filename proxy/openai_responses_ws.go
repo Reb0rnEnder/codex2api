@@ -132,6 +132,12 @@ func executeOpenAIResponsesWebsocket(ctx context.Context, account *auth.Account,
 		return nil, err
 	}
 	body := prepareOpenAIResponsesWebsocketBody(requestBody)
+	if account.IsBasisPoints() {
+		wsURL, headers, body, err = prepareBasisPointsWebsocket(baseURL, apiKey, requestBody)
+		if err != nil {
+			return nil, err
+		}
+	}
 	boundProxy, accountBound := AccountBoundEgress(ctx)
 	if accountBound {
 		proxyURL = boundProxy
@@ -145,6 +151,7 @@ func executeOpenAIResponsesWebsocket(ctx context.Context, account *auth.Account,
 		proxyURL:     strings.TrimSpace(proxyURL),
 		wsURL:        wsURL,
 		headers:      headers,
+		basisPoints:  account.IsBasisPoints(),
 	}, body)
 	record(resp)
 	return resp, err
@@ -156,6 +163,7 @@ func openAIResponsesWSKeyHash(apiKey string) string {
 }
 
 type openAIResponsesWSSpec struct {
+	basisPoints  bool
 	accountBound bool
 	accountID    int64
 	baseURL      string
@@ -300,6 +308,9 @@ func openAIResponsesWSStream(ctx context.Context, pool *openAIResponsesWSPool, c
 		}
 		var controlErr error
 		err := readOpenAIResponsesWS(conn.conn, func(frame []byte) bool {
+			if conn.spec.basisPoints && strings.HasPrefix(gjson.GetBytes(frame, "type").String(), "basispoints.") {
+				return true
+			}
 			frame, err := control.accept(frame)
 			if err != nil {
 				controlErr = err

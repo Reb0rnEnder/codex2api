@@ -1,3 +1,5 @@
+import uiI18n from "../i18n";
+import { useTranslation as useUILanguage } from "react-i18next";
 import { useEffect, useState } from 'react'
 import { History, LoaderCircle, Play } from 'lucide-react'
 import { api } from '../api'
@@ -19,6 +21,7 @@ type AccountIntelligenceProps = {
 }
 
 export function AccountIntelligenceActions({ bar, accountID, accountName }: AccountIntelligenceProps) {
+  useUILanguage();
   const { showToast } = useToast()
   const [history, setHistory] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -36,20 +39,21 @@ export function AccountIntelligenceActions({ bar, accountID, accountName }: Acco
       const result = await api.createIntelligenceRuns([accountID])
       setPendingID(result.runs.find(r => r.account_id === accountID && (r.status === 'queued' || r.status === 'running'))?.id ?? null)
       refreshIntelligenceBars()
-      showToast('检测任务已提交')
+      showToast(uiI18n.t("uiExtra.accountIntelligenceBar.checkQueued"))
     } catch (e) { showToast(getErrorMessage(e), 'error') }
     finally { setSubmitting(false) }
   }
-  return <div role="group" aria-label="检测操作" className="inline-flex shrink-0 items-center gap-0.5" onClick={event => event.stopPropagation()}>
-    <Button variant="ghost" size="icon-xs" className="size-4.5 rounded-sm text-muted-foreground hover:text-foreground" aria-label={active ? '检测中' : '立即检测'} title={active ? '检测中' : '立即检测'} disabled={active} aria-busy={active} onClick={() => void run()}>
+  return <div role="group" aria-label={uiI18n.t("uiExtra.accountIntelligenceBar.checkActions")} className="inline-flex shrink-0 items-center gap-0.5" onClick={event => event.stopPropagation()}>
+    <Button variant="ghost" size="icon-xs" className="size-4.5 rounded-sm text-muted-foreground hover:text-foreground" aria-label={active ? uiI18n.t("uiExtra.accountIntelligenceBar.checking") : uiI18n.t("uiExtra.accountIntelligenceBar.checkNow")} title={active ? uiI18n.t("uiExtra.accountIntelligenceBar.checking") : uiI18n.t("uiExtra.accountIntelligenceBar.checkNow")} disabled={active} aria-busy={active} onClick={() => void run()}>
       {active ? <LoaderCircle className="size-3 animate-spin" /> : <Play className="size-3" />}
     </Button>
-    <Button variant="ghost" size="icon-xs" className="size-4.5 rounded-sm text-muted-foreground hover:text-foreground" aria-label="检测记录" title="检测记录" onClick={() => setHistory(true)}><History className="size-3" /></Button>
+    <Button variant="ghost" size="icon-xs" className="size-4.5 rounded-sm text-muted-foreground hover:text-foreground" aria-label={uiI18n.t("uiExtra.accountIntelligenceBar.checkHistory")} title={uiI18n.t("uiExtra.accountIntelligenceBar.checkHistory")} onClick={() => setHistory(true)}><History className="size-3" /></Button>
     {history && <AccountIntelligenceHistoryDialog accountID={accountID} accountName={accountName} onClose={() => setHistory(false)} />}
   </div>
 }
 
 export default function AccountIntelligenceBar({ bar, error }: AccountIntelligenceProps) {
+  useUILanguage();
   const [runID, setRunID] = useState<number | null>(null)
   if (!bar?.enabled) return null
   const { records, rate } = intelligenceWindow(bar?.records ?? [])
@@ -58,17 +62,17 @@ export default function AccountIntelligenceBar({ bar, error }: AccountIntelligen
       : 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400'
   return <div className="mt-1.5 min-w-28" onClick={event => event.stopPropagation()}>
     {(error || (bar?.action && bar.action !== 'none')) && <div className="mb-1 flex items-center gap-1">
-      {error && <span role="status" className="text-[10px] text-destructive">加载失败</span>}
+      {error && <span role="status" className="text-[10px] text-destructive">{uiI18n.t("uiExtra.accountIntelligenceBar.unableToLoad")}</span>}
       {bar?.action && bar.action !== 'none' && <span className="text-[10px] text-muted-foreground">{intelligenceLabels[bar.action]}</span>}
     </div>}
     <p className="mb-1 text-[10px] text-muted-foreground">{intelligenceScheduleLabel(bar)}</p>
-    <AccountStatusBar label="最近 20 次降智检测，由旧到新" rate={error ? null : rate} rateClass={rateClass}
+    <AccountStatusBar label={uiI18n.t("uiExtra.accountIntelligenceBar.last20IntelligenceChecksOldestFirst")} rate={error ? null : rate} rateClass={rateClass}
       blocks={[
-        ...Array.from({ length: 20 - records.length }, () => ({ tooltip: <span className="text-muted-foreground">暂无检测记录</span> })),
+        ...Array.from({ length: 20 - records.length }, () => ({ tooltip: <span className="text-muted-foreground">{uiI18n.t("uiExtra.accountIntelligenceBar.noCheckHistory")}</span> })),
         ...records.map(record => {
           const time = new Date(record.completed_at || record.created_at || 0).toLocaleString()
           const result = intelligenceLabels[record.status]
-          const duration = `${((record.duration_ms ?? 0) / 1000).toFixed(2)} 秒`
+          const duration = uiI18n.t("uiExtra.accountIntelligenceBar.valueSeconds", { value0: (((record.duration_ms ?? 0) / 1000).toFixed(2)) })
           return { color: intelligenceColor(record.status), label: `${time} · ${record.question_name || '检测'} · ${result} · ${duration}`, onClick: () => setRunID(record.id),
             tooltip: <><span className="mb-0.5 block text-muted-foreground">{time}</span><span className="flex items-center gap-2"><span style={{ color: intelligenceColor(record.status) }}>{record.question_name || '检测'} · {result}</span><span className="text-muted-foreground">{duration}</span></span></> }
         }),

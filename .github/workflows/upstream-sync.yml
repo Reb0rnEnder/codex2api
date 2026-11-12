@@ -1,0 +1,85 @@
+name: Sync upstream releases
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      publish_current:
+        description: 'Build a fork release even if upstream is already merged'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: upstream-release-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # This workflow belongs to the maintained fork.
+    if: github.repository == 'Reb0rnEnder/codex2api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Merge latest upstream release
+        id: upstream
+        env:
+          PUBLISH_CURRENT: ${{ inputs.publish_current || false }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          bash .github/scripts/sync-upstream.sh
+      - uses: actions/setup-node@v5
+        if: steps.upstream.outputs.changed == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-go@v6
+        if: steps.upstream.outputs.changed == 'true'
+        with:
+          go-version-file: go.mod
+      - name: Validate frontend
+        if: steps.upstream.outputs.changed == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run typecheck
+          npm run build
+      - name: Test sync behavior
+        if: steps.upstream.outputs.changed == 'true'
+        run: node --test .github/scripts/sync-upstream.test.mjs
+      - name: Validate backend
+        if: steps.upstream.outputs.changed == 'true'
+        run: go test -count=1 -timeout 12m ./...
+      - name: Publish tested merge and fork tag
+        id: publish
+        if: steps.upstream.outputs.changed == 'true'
+        env:
+          UPSTREAM_TAG: ${{ steps.upstream.outputs.upstream_tag }}
+        run: |
+          fork_tag="${UPSTREAM_TAG}-fork.${GITHUB_RUN_NUMBER}"
+          git tag "$fork_tag"
+          git push --atomic origin HEAD:main "refs/tags/$fork_tag"
+          echo "tag=$fork_tag" >> "$GITHUB_OUTPUT"
+      # GITHUB_TOKEN pushes do not trigger other push workflows. Dispatch builds explicitly.
+      - name: Build release binaries and Docker image
+        if: steps.upstream.outputs.changed == 'true'
+        env:
+          FORK_TAG: ${{ steps.publish.outputs.tag }}
+        run: |
+          gh workflow run release.yml --ref "$FORK_TAG"
+          gh workflow run docker-image.yml --ref "$FORK_TAG" -f "build_version=$FORK_TAG"
+          echo "### Published $FORK_TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Merged upstream release, passed tests, and dispatched binary and Docker builds.' >> "$GITHUB_STEP_SUMMARY"

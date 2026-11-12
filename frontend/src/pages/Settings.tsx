@@ -1,3 +1,4 @@
+import uiI18n from "../i18n";
 import type { ChangeEvent, FocusEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -4747,7 +4748,7 @@ export default function Settings() {
                   {/* 可视化预算分配比例条 (Memory Allocation Bar) */}
                   <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-foreground">内存缓存分配预览 (Memory Allocation)</span>
+                      <span className="text-foreground">{uiI18n.t("uiExtra.settings.memoryAllocationPreview")}</span>
                       <span className="font-mono text-primary font-bold">{responseCacheBudget.totalMiB} MiB</span>
                     </div>
                     <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted shadow-inner">
@@ -4774,7 +4775,7 @@ export default function Settings() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className="size-2 rounded-full bg-emerald-500/60" />
-                        <span>常驻热点池: <strong className="text-foreground font-mono">{Math.max(0, responseCacheBudget.totalMiB - responseCacheBudget.entryMiB - responseCacheBudget.reconstructMiB)} MiB</strong></span>
+                        <span>{uiI18n.t("uiExtra.settings.residentHotPool")}<strong className="text-foreground font-mono">{Math.max(0, responseCacheBudget.totalMiB - responseCacheBudget.entryMiB - responseCacheBudget.reconstructMiB)} MiB</strong></span>
                       </div>
                     </div>
                   </div>
@@ -5796,7 +5797,7 @@ export default function Settings() {
                         )}
                         <div className="space-y-0.5">
                           <div className="text-xs font-bold leading-none text-foreground">{settingsForm.site_name || 'CodexProxy'}</div>
-                          <div className="text-[10px] text-muted-foreground">毛玻璃预览 Glass Effect</div>
+                          <div className="text-[10px] text-muted-foreground">{uiI18n.t("uiExtra.settings.glassEffectPreview")}</div>
                         </div>
                       </div>
                       <Badge variant="outline" className="text-[10px] border-primary/30 bg-primary/10 text-primary font-mono">
@@ -6577,7 +6578,7 @@ export default function Settings() {
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-4">
                       <div className="flex items-center gap-2 font-semibold text-foreground text-sm border-b border-primary/10 pb-2.5">
                         <Cloud className="size-4 text-primary" />
-                        <span>对象存储凭证 (S3 Compatible Storage)</span>
+                        <span>{uiI18n.t("uiExtra.settings.s3CompatibleStorageCredentials")}</span>
                       </div>
                       <div className={SETTINGS_FIELD_GRID_3}>
                         <SettingField label={t('settings.imageS3Endpoint')} description={t('settings.imageS3EndpointDesc')}>
@@ -6699,15 +6700,13 @@ export default function Settings() {
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3.5 text-xs">
                       <div className="flex items-center gap-2 font-medium text-foreground">
                         <ShieldAlert className="size-4 text-destructive" />
-                        <span>系统防护与审计 (Security Guard)</span>
+                        <span>{uiI18n.t("uiExtra.settings.securityAndAuditing")}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant={settingsForm.prompt_filter_enabled ? 'default' : 'outline'} className="text-[11px] gap-1">
-                          <span className={`size-1.5 rounded-full ${settingsForm.prompt_filter_enabled ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-                          Prompt 风控: {settingsForm.prompt_filter_enabled ? '已开启' : '未开启'}
+                          <span className={`size-1.5 rounded-full ${settingsForm.prompt_filter_enabled ? 'bg-emerald-400' : 'bg-amber-400'}`} />{uiI18n.t("uiExtra.settings.promptChecks")}{settingsForm.prompt_filter_enabled ? uiI18n.t("uiExtra.settings.enabled") : uiI18n.t("uiExtra.settings.disabled")}
                         </Badge>
-                        <Badge variant="secondary" className="text-[11px] uppercase font-mono">
-                          模式: {settingsForm.prompt_filter_mode}
+                        <Badge variant="secondary" className="text-[11px] uppercase font-mono">{uiI18n.t("uiExtra.settings.mode")}{settingsForm.prompt_filter_mode}
                         </Badge>
                       </div>
                     </div>
@@ -6773,15 +6772,15 @@ export default function Settings() {
                 </SettingsCard>
 
                 <SettingsCard
-                  title="模型输出失控防护"
-                  description="全局实时监控工具参数持续重复、细碎 delta 泛洪与通道/请求级字节预算超限"
+                  title={uiI18n.t("uiExtra.settings.runawayOutputProtection")}
+                  description={uiI18n.t("uiExtra.settings.monitorRepeatedToolArgumentsFragmentedDeltaFloods")}
                   icon={<ShieldAlert className="size-4" />}
                   tone={settingsForm.output_guard_enabled ? 'default' : 'danger'}
                   channels={ALL_UPSTREAM_CHANNELS}
                   badge={
                     <Badge variant={settingsForm.output_guard_enabled ? 'outline' : 'destructive'} className="text-[11px] gap-1">
                       <span className={`size-1.5 rounded-full ${settingsForm.output_guard_enabled ? 'bg-emerald-400' : 'bg-red-500'}`} />
-                      {settingsForm.output_guard_enabled ? '已启用全局防护' : '已关闭 (高风险)'}
+                      {settingsForm.output_guard_enabled ? uiI18n.t("uiExtra.settings.globalProtectionEnabled") : uiI18n.t("uiExtra.settings.disabledHighRisk")}
                     </Badge>
                   }
                   footer={
@@ -6796,9 +6795,7 @@ export default function Settings() {
                           void autoSaveSettingsPatch(patch)
                         }}
                       >
-                        <RotateCcw className="size-3" />
-                        恢复默认防护
-                      </Button>
+                        <RotateCcw className="size-3" />{uiI18n.t("uiExtra.settings.restoreDefaultProtection")}</Button>
                     </div>
                   }
                 >
@@ -6807,21 +6804,21 @@ export default function Settings() {
                       <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-xs text-destructive flex items-start gap-2">
                         <ShieldAlert className="size-4 shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-semibold">高风险操作警告：失控防护已全局关闭</p>
-                          <p className="opacity-90">关闭后模型失控生成死循环、重复代码或细碎 arguments delta 时，将直接击穿代理并在下游引发 O(n²) 全量重解析雪崩。仅用于临时诊断，请尽快重新开启！</p>
+                          <p className="font-semibold">{uiI18n.t("uiExtra.settings.highRiskSettingRunawayOutputProtectionIs")}</p>
+                          <p className="opacity-90">{uiI18n.t("uiExtra.settings.runawayGenerationRepeatedCodeOrFragmentedArgument")}</p>
                         </div>
                       </div>
                     )}
 
                     <div className="rounded-xl border bg-muted/20 p-3.5 text-xs text-muted-foreground space-y-1.5">
-                      <p className="font-medium text-foreground">开启前请注意</p>
+                      <p className="font-medium text-foreground">{uiI18n.t("uiExtra.settings.beforeEnabling")}</p>
                       <ul className="list-disc pl-4 space-y-1">
-                        <li><span className="font-medium text-foreground">CPU 开销</span>：开启后需对每条模型输出流做重复扫描与预算记账，会带来额外 CPU 占用（1 MiB 单流实测约 1%–2%，40 并发下的净增已落入测量噪声）。高吞吐部署建议开启后持续观察 CPU 与吞吐。</li>
-                        <li><span className="font-medium text-foreground">命中行为</span>：触发即终止本次上游生成并返回 502（错误码 <code className="font-mono">model_output_guard_triggered</code>），已下发内容不回滚；Guard 命中<b>不会自动重试</b>（确定性失控，重试只会重复消耗）。</li>
-                        <li><span className="font-medium text-foreground">与断流区分</span>：上游断流（<code className="font-mono">upstream_stream_break</code>）属瞬态故障，消息带 <code className="font-mono">status 502</code> 标记，客户端会自动重试；Guard 命中则不同。</li>
-                        <li><span className="font-medium text-foreground">生效范围</span>：全局生效（所有账号与模型），默认关闭；关闭 Guard 不会关闭 framing 硬上限（单行/事件 8 MiB、WS 48 MB）。</li>
-                        <li><span className="font-medium text-foreground">误伤处理</span>：正常超长输出被拦截时，可调高「工具参数增量上限」（≤65536）或「通道字节上限」；保存后约 5 秒内热生效，无需重启。</li>
-                        <li><span className="font-medium text-foreground">数据安全</span>：拦截原因仅记录在服务端，下游只收到稳定公开错误码与通用文案（不含模型原文、工具路径、prompt 或密钥）。</li>
+                        <li><span className="font-medium text-foreground">{uiI18n.t("uiExtra.settings.cPUOverhead")}</span>{uiI18n.t("uiExtra.settings.streamsAreScannedForRepetitionAndByte")}</li>
+                        <li><span className="font-medium text-foreground">{uiI18n.t("uiExtra.settings.whenTriggered")}</span>{uiI18n.t("uiExtra.settings.stopsTheCurrentUpstreamGenerationAndReturns")}<code className="font-mono">model_output_guard_triggered</code>{uiI18n.t("uiExtra.settings.contentAlreadySentIsNotRolledBack")}<b>{uiI18n.t("uiExtra.settings.isNotRetriedAutomatically")}</b>{uiI18n.t("uiExtra.settings.becauseTheSameRunawayGenerationWouldConsume")}</li>
+                        <li><span className="font-medium text-foreground">{uiI18n.t("uiExtra.settings.comparedWithABrokenStream")}</span>{uiI18n.t("uiExtra.settings.anUpstreamStreamInterruption")}<code className="font-mono">upstream_stream_break</code>{uiI18n.t("uiExtra.settings.isTransientAndIncludesThe")}<code className="font-mono">status 502</code>{uiI18n.t("uiExtra.settings.flagSoClientsCanRetryGuardTriggers")}</li>
+                        <li><span className="font-medium text-foreground">{uiI18n.t("uiExtra.settings.scope")}</span>{uiI18n.t("uiExtra.settings.appliesGloballyToAllAccountsAndModels")}</li>
+                        <li><span className="font-medium text-foreground">{uiI18n.t("uiExtra.settings.falsePositives")}</span>{uiI18n.t("uiExtra.settings.ifValidLongOutputIsBlockedRaise")}</li>
+                        <li><span className="font-medium text-foreground">{uiI18n.t("uiExtra.settings.dataSafety")}</span>{uiI18n.t("uiExtra.settings.detailedReasonsAreLoggedOnlyOnThe")}</li>
                       </ul>
                     </div>
 
@@ -6833,8 +6830,8 @@ export default function Settings() {
 
                     <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
                       <div>
-                        <div className="text-sm font-medium">启用失控输出防护</div>
-                        <div className="text-xs text-muted-foreground">全局实时检测持续短周期重复、细碎 arguments 泛洪与字节预算超额并前置切断</div>
+                        <div className="text-sm font-medium">{uiI18n.t("uiExtra.settings.enableRunawayOutputProtection")}</div>
+                        <div className="text-xs text-muted-foreground">{uiI18n.t("uiExtra.settings.stopSustainedShortCycleRepetitionFragmentedArgument")}</div>
                       </div>
                       <Switch
                         checked={settingsForm.output_guard_enabled}
@@ -6847,8 +6844,8 @@ export default function Settings() {
 
                     <div className={SETTINGS_FIELD_GRID}>
                       <SettingField
-                        label="工具参数字节上限 (KiB)"
-                        description="单次工具调用完整参数序列化字节硬上限（默认 256 KiB，范围 16 KiB..4096 KiB）"
+                        label={uiI18n.t("uiExtra.settings.toolArgumentByteLimitKiB")}
+                        description={uiI18n.t("uiExtra.settings.maximumSerializedArgumentSizePerToolCall")}
                       >
                         <DraftNumberInput
                           min={16}
@@ -6864,8 +6861,8 @@ export default function Settings() {
                       </SettingField>
 
                       <SettingField
-                        label="工具非空 Delta 数量上限"
-                        description="限制细碎 arguments delta 触发下游高频重解析事件的次数（默认 4096，范围 256..65536）"
+                        label={uiI18n.t("uiExtra.settings.maximumNonEmptyToolDeltas")}
+                        description={uiI18n.t("uiExtra.settings.limitsFragmentedArgumentDeltasThatTriggerFrequent")}
                       >
                         <DraftNumberInput
                           min={256}
@@ -6881,8 +6878,8 @@ export default function Settings() {
                       </SettingField>
 
                       <SettingField
-                        label="单 Channel 字节上限 (KiB)"
-                        description="单 text/thinking 生成通道累计字节上限（默认 2048 KiB，范围 128 KiB..16384 KiB）"
+                        label={uiI18n.t("uiExtra.settings.channelByteLimitKiB")}
+                        description={uiI18n.t("uiExtra.settings.totalBytesPerTextThinkingChannelDefault")}
                       >
                         <DraftNumberInput
                           min={128}
@@ -6898,8 +6895,8 @@ export default function Settings() {
                       </SettingField>
 
                       <SettingField
-                        label="单请求语义预算 (KiB)"
-                        description={`一次请求内所有 channel 消耗的总语义字节硬上限（默认 ${bytesToMiB(DEFAULT_OUTPUT_GUARD_SETTINGS.output_guard_max_request_bytes)} MiB，范围 256 KiB..65536 KiB）`}
+                        label={uiI18n.t("uiExtra.settings.requestSemanticBudgetKiB")}
+                        description={uiI18n.t("uiExtra.settings.totalSemanticBytesAcrossAllChannelsIn", { value0: (bytesToMiB(DEFAULT_OUTPUT_GUARD_SETTINGS.output_guard_max_request_bytes)) })}
                       >
                         <DraftNumberInput
                           min={256}

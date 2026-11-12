@@ -549,7 +549,7 @@ func claudeChannelAccountFilterWithGate(model string, gate modelRateLimitGate) a
 // from OpenAI Responses and Chat Completions routes.
 func excludeClaudeAccountsFilter(filter auth.AccountFilter) auth.AccountFilter {
 	return func(account *auth.Account) bool {
-		return account != nil && !account.IsClaudeOAuth() && (filter == nil || filter(account))
+		return account != nil && (!account.IsClaudeOAuth() || account.IsZcode()) && (filter == nil || filter(account))
 	}
 }
 
@@ -615,7 +615,7 @@ func accountFilterForCompactResponsesModelWithOriginal(originalModel string, eff
 	return func(account *auth.Account) bool {
 		// The dedicated compact executor has no Grok adapter. Inline compaction
 		// on ordinary Responses has a separate provider capability boundary.
-		return account != nil && !account.IsGrokAPI() && inner(account)
+		return account != nil && !account.IsGrokAPI() && !account.IsZcode() && inner(account)
 	}
 }
 

@@ -616,6 +616,10 @@ func (h *Handler) UpdateOAuthAccountCode(c *gin.Context) {
 		writeError(c, http.StatusBadRequest, "当前账号不是 OAuth 授权类型，不能重新授权")
 		return
 	}
+	if row.GetCredential("basispoints") == "true" {
+		writeError(c, http.StatusBadRequest, "BasisPoints accounts must use BasisPoints sign-in")
+		return
+	}
 
 	sess, ok := globalOAuthStore.get(req.SessionID)
 	if !ok {

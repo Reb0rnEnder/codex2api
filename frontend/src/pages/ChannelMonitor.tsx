@@ -1,3 +1,5 @@
+import uiI18n from "../i18n";
+import { useTranslation as useUILanguage } from "react-i18next";
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getTimezone } from '../utils/time'
 import { useNavigate } from 'react-router-dom'
@@ -38,6 +40,7 @@ import { cn } from '@/lib/utils'
 const EMPTY_RESPONSE: ChannelMonitorListResponse = { items: [], generated_at: '' }
 
 export default function ChannelMonitor() {
+  useUILanguage();
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [probing, setProbing] = useState<Set<number>>(new Set())
@@ -75,10 +78,10 @@ export default function ChannelMonitor() {
     setProbing((current) => new Set(current).add(accountID))
     try {
       await api.probeChannelMonitor(accountID)
-      showToast('渠道健康与倍率探测完成')
+      showToast(uiI18n.t("uiExtra.channelMonitor.channelHealthAndRateProbeCompleted"))
       await reloadSilently()
     } catch (cause) {
-      showToast(`立即探测失败: ${getErrorMessage(cause)}`, 'error')
+      showToast(uiI18n.t("uiExtra.channelMonitor.probeFailedValue", { value0: (getErrorMessage(cause)) }), 'error')
     } finally {
       setProbing((current) => {
         const next = new Set(current)
@@ -95,26 +98,23 @@ export default function ChannelMonitor() {
       error={data.items.length === 0 ? error : null}
       onRetry={() => void reload()}
       isEmpty={!loading && !error && data.items.length === 0}
-      emptyTitle="暂无启用的渠道监控"
-      emptyDescription="前往账号管理，在 Responses API 渠道的“渠道监控配置”中开启。"
-      action={<Button onClick={() => navigate('/accounts')}><Settings2 className="size-4" />前往账号管理</Button>}
-      loadingTitle="正在加载渠道监控"
-      loadingDescription="读取健康历史与上游倍率快照"
-      errorTitle="渠道监控加载失败"
+      emptyTitle={uiI18n.t("uiExtra.channelMonitor.noChannelMonitorsEnabled")}
+      emptyDescription={uiI18n.t("uiExtra.channelMonitor.openAccountsAndEnableMonitoringInThe")}
+      action={<Button onClick={() => navigate('/accounts')}><Settings2 className="size-4" />{uiI18n.t("uiExtra.channelMonitor.openAccounts")}</Button>}
+      loadingTitle={uiI18n.t("uiExtra.channelMonitor.loadingChannelMonitors")}
+      loadingDescription={uiI18n.t("uiExtra.channelMonitor.readingHealthHistoryAndUpstreamRateSnapshots")}
+      errorTitle={uiI18n.t("uiExtra.channelMonitor.unableToLoadChannelMonitors")}
     >
       <>
         <PageHeader
-          title="渠道监控"
-          description="Responses API 渠道的主动可用性、响应延迟与上游计费倍率。"
+          title={uiI18n.t("uiExtra.channelMonitor.channelMonitoring")}
+          description={uiI18n.t("uiExtra.channelMonitor.availabilityResponseLatencyAndUpstreamBillingRates")}
           actions={
             <div className="flex items-center gap-3 max-sm:w-full max-sm:flex-col max-sm:items-stretch">
-              <span className="text-xs text-muted-foreground max-sm:text-center">
-                更新于 {formatTime(data.generated_at)}
+              <span className="text-xs text-muted-foreground max-sm:text-center">{uiI18n.t("uiExtra.channelMonitor.updated")}{formatTime(data.generated_at)}
               </span>
               <Button variant="outline" onClick={() => void reload()} disabled={loading}>
-                <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} />
-                刷新
-              </Button>
+                <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} />{uiI18n.t("uiExtra.channelMonitor.refresh")}</Button>
             </div>
           }
         />
@@ -122,15 +122,15 @@ export default function ChannelMonitor() {
         {error && data.items.length > 0 ? (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive" role="alert">
             <span className="truncate">{error}</span>
-            <Button variant="outline" size="sm" onClick={() => void reload()}>重试</Button>
+            <Button variant="outline" size="sm" onClick={() => void reload()}>{uiI18n.t("uiExtra.channelMonitor.retry")}</Button>
           </div>
         ) : null}
 
         <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          <SummaryCard label="已监控" value={summary.total} icon={<RadioTower className="size-4" />} tone="neutral" />
-          <SummaryCard label="运行正常" value={summary.operational} icon={<CheckCircle2 className="size-4" />} tone="success" />
-          <SummaryCard label="响应较慢" value={summary.degraded} icon={<AlertTriangle className="size-4" />} tone="warning" />
-          <SummaryCard label="探测异常" value={summary.failed} icon={<XCircle className="size-4" />} tone="danger" />
+          <SummaryCard label={uiI18n.t("uiExtra.channelMonitor.monitored")} value={summary.total} icon={<RadioTower className="size-4" />} tone="neutral" />
+          <SummaryCard label={uiI18n.t("uiExtra.channelMonitor.operational")} value={summary.operational} icon={<CheckCircle2 className="size-4" />} tone="success" />
+          <SummaryCard label={uiI18n.t("uiExtra.channelMonitor.slowResponse")} value={summary.degraded} icon={<AlertTriangle className="size-4" />} tone="warning" />
+          <SummaryCard label={uiI18n.t("uiExtra.channelMonitor.probeFailed")} value={summary.failed} icon={<XCircle className="size-4" />} tone="danger" />
         </div>
 
         <TooltipProvider delayDuration={120}>
@@ -212,12 +212,12 @@ function MonitorCard({
       <CardContent className="space-y-4 p-4">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="min-w-0 truncate font-mono text-foreground" title={item.model}>{item.model}</span>
-          <span className="shrink-0 text-muted-foreground">每 {item.interval_minutes} 分钟</span>
+          <span className="shrink-0 text-muted-foreground">{uiI18n.t("uiExtra.channelMonitor.every")}{item.interval_minutes}{uiI18n.t("uiExtra.channelMonitor.minutes")}</span>
         </div>
 
         <div className="grid grid-cols-2 divide-x divide-border rounded-lg border border-border/70 bg-muted/15 py-2.5">
-          <Metric label="总耗时" value={formatLatency(item.latency_ms)} icon={<Clock3 className="size-3" />} />
-          <Metric label="7 天可用" value={item.availability_7d == null ? '—' : `${item.availability_7d.toFixed(2)}%`} icon={<Gauge className="size-3" />} />
+          <Metric label={uiI18n.t("uiExtra.channelMonitor.totalDuration")} value={formatLatency(item.latency_ms)} icon={<Clock3 className="size-3" />} />
+          <Metric label={uiI18n.t("uiExtra.channelMonitor.7DayAvailability")} value={item.availability_7d == null ? '—' : `${item.availability_7d.toFixed(2)}%`} icon={<Gauge className="size-3" />} />
         </div>
 
         <MonitorTimeline checks={item.recent_checks} checks7d={item.checks_7d} />
@@ -233,13 +233,11 @@ function MonitorCard({
 
         <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
           <div className="min-w-0 text-[11px] text-muted-foreground">
-            <p className="truncate">上次：{formatDateTime(item.last_checked_at)}</p>
-            <p className="truncate">下次：{formatDateTime(item.next_check_at)}</p>
+            <p className="truncate">{uiI18n.t("uiExtra.channelMonitor.last")}{formatDateTime(item.last_checked_at)}</p>
+            <p className="truncate">{uiI18n.t("uiExtra.channelMonitor.next")}{formatDateTime(item.next_check_at)}</p>
           </div>
           <Button variant="outline" size="sm" onClick={onProbe} disabled={probing} className="shrink-0 cursor-pointer">
-            {probing ? <Loader2 className="size-3.5 animate-spin" /> : <TimerReset className="size-3.5" />}
-            立即探测
-          </Button>
+            {probing ? <Loader2 className="size-3.5 animate-spin" /> : <TimerReset className="size-3.5" />}{uiI18n.t("uiExtra.channelMonitor.probeNow")}</Button>
         </div>
       </CardContent>
     </Card>
@@ -265,14 +263,14 @@ function MonitorTimeline({
     return counts
   }, { unknown: 0, operational: 0, degraded: 0, failed: 0 })
   const timelineLabel = recent.length === 0
-    ? '最近 60 个状态槽位，暂无探测记录'
-    : `最近 60 个状态槽位：正常 ${statusCounts.operational}，较慢 ${statusCounts.degraded}，异常 ${statusCounts.failed}，待探测 ${statusCounts.unknown}`
+    ? uiI18n.t("uiExtra.channelMonitor.last60StatusSlotsNoProbesRecorded")
+    : uiI18n.t("uiExtra.channelMonitor.last60StatusSlotsValueHealthyValue", { value0: (statusCounts.operational), value1: (statusCounts.degraded), value2: (statusCounts.failed), value3: (statusCounts.unknown) })
 
   return (
     <div className="space-y-1.5 border-t border-border/60 pt-3">
       <div className="flex items-center justify-between text-[10px] font-medium uppercase text-muted-foreground">
-        <span>最近 60 个状态</span>
-        <span className="tabular-nums">{checks7d > 0 ? `7 天 ${checks7d} 次` : '暂无历史'}</span>
+        <span>{uiI18n.t("uiExtra.channelMonitor.last60Statuses")}</span>
+        <span className="tabular-nums">{checks7d > 0 ? uiI18n.t("uiExtra.channelMonitor.valueProbesIn7Days", { value0: (checks7d) }) : uiI18n.t("uiExtra.channelMonitor.noHistory")}</span>
       </div>
       <div
         className="flex h-5 w-full items-end gap-[2px]"
@@ -291,8 +289,8 @@ function MonitorTimeline({
         ))}
       </div>
       <div className="flex justify-between text-[9px] uppercase text-muted-foreground/80" aria-hidden="true">
-        <span>过去</span>
-        <span>现在</span>
+        <span>{uiI18n.t("uiExtra.channelMonitor.earlier")}</span>
+        <span>{uiI18n.t("uiExtra.channelMonitor.now")}</span>
       </div>
     </div>
   )
@@ -313,31 +311,31 @@ function BillingRateBadge({ item, rate }: { item: ChannelMonitorCard; rate: numb
         <button
           type="button"
           className={cn('cursor-help rounded-md border px-2 py-1 font-mono text-xs font-bold tabular-nums transition-colors duration-200', tone)}
-          aria-label={`上游计费倍率 ${rateLabel}`}
+          aria-label={uiI18n.t("uiExtra.channelMonitor.upstreamBillingMultiplierValue", { value0: (rateLabel) })}
         >
           {rateLabel}
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-[min(22rem,calc(100vw-2rem))] space-y-1.5 px-3 py-2.5">
-        <p className="font-semibold">上游计费倍率</p>
+        <p className="font-semibold">{uiI18n.t("uiExtra.channelMonitor.upstreamBillingMultiplier")}</p>
         {data ? (
           <>
-            <DetailLine label="分组倍率" value={formatOptionalMultiplier(data.group_rate_multiplier)} />
-            {data.user_rate_multiplier != null ? <DetailLine label="用户倍率" value={formatOptionalMultiplier(data.user_rate_multiplier)} /> : null}
-            <DetailLine label="基础倍率" value={formatOptionalMultiplier(data.resolved_rate_multiplier)} />
+            <DetailLine label={uiI18n.t("uiExtra.channelMonitor.groupMultiplier")} value={formatOptionalMultiplier(data.group_rate_multiplier)} />
+            {data.user_rate_multiplier != null ? <DetailLine label={uiI18n.t("uiExtra.channelMonitor.userMultiplier")} value={formatOptionalMultiplier(data.user_rate_multiplier)} /> : null}
+            <DetailLine label={uiI18n.t("uiExtra.channelMonitor.baseMultiplier")} value={formatOptionalMultiplier(data.resolved_rate_multiplier)} />
             <DetailLine
-              label="峰值规则"
+              label={uiI18n.t("uiExtra.channelMonitor.peakTimeRules")}
               value={data.peak_rate_enabled
                 ? `${data.peak_start || '?'}–${data.peak_end || '?'} · ×${formatChannelMonitorMultiplier(data.peak_rate_multiplier ?? 1)} ${data.timezone || ''}`
-                : '未启用'}
+                : uiI18n.t("uiExtra.channelMonitor.disabled")}
             />
-            <DetailLine label="当前倍率" value={rate == null ? '—' : `×${formatChannelMonitorMultiplier(rate)}`} />
+            <DetailLine label={uiI18n.t("uiExtra.channelMonitor.currentMultiplier")} value={rate == null ? '—' : `×${formatChannelMonitorMultiplier(rate)}`} />
           </>
         ) : <p>{billingStatusLabel(billing.status)}</p>}
         <div className="mt-2 border-t border-background/20 pt-2 text-background/75">
-          <p>状态：{billingStatusLabel(billing.status)}</p>
-          <p>上次成功：{formatDateTime(billing.success_at)}</p>
-          <p>下次探测：{formatDateTime(billing.next_check_at)}</p>
+          <p>{uiI18n.t("uiExtra.channelMonitor.status")}{billingStatusLabel(billing.status)}</p>
+          <p>{uiI18n.t("uiExtra.channelMonitor.lastSuccess")}{formatDateTime(billing.success_at)}</p>
+          <p>{uiI18n.t("uiExtra.channelMonitor.nextProbe")}{formatDateTime(billing.next_check_at)}</p>
           {billing.message ? <p className="mt-1 break-words">{billing.message}</p> : null}
         </div>
       </TooltipContent>
@@ -360,10 +358,10 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 
 function monitorStatusMeta(status: ChannelMonitorStatus) {
   switch (status) {
-    case 'operational': return { label: '正常', dot: 'bg-emerald-500', ring: 'ring-emerald-500/10', badge: 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400' }
-    case 'degraded': return { label: '较慢', dot: 'bg-amber-500', ring: 'ring-amber-500/10', badge: 'border-amber-500/30 text-amber-600 dark:text-amber-400' }
-    case 'failed': return { label: '异常', dot: 'bg-destructive', ring: 'ring-destructive/10', badge: 'border-destructive/30 text-destructive' }
-    default: return { label: '待探测', dot: 'bg-slate-400', ring: 'ring-slate-400/10', badge: 'text-muted-foreground' }
+    case 'operational': return { label: uiI18n.t("uiExtra.channelMonitor.healthy"), dot: 'bg-emerald-500', ring: 'ring-emerald-500/10', badge: 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400' }
+    case 'degraded': return { label: uiI18n.t("uiExtra.channelMonitor.slow"), dot: 'bg-amber-500', ring: 'ring-amber-500/10', badge: 'border-amber-500/30 text-amber-600 dark:text-amber-400' }
+    case 'failed': return { label: uiI18n.t("uiExtra.channelMonitor.failed"), dot: 'bg-destructive', ring: 'ring-destructive/10', badge: 'border-destructive/30 text-destructive' }
+    default: return { label: uiI18n.t("uiExtra.channelMonitor.pending"), dot: 'bg-slate-400', ring: 'ring-slate-400/10', badge: 'text-muted-foreground' }
   }
 }
 
@@ -378,10 +376,10 @@ function monitorTimelineBarClass(status?: ChannelMonitorStatus) {
 
 function billingStatusLabel(status: ChannelMonitorCard['billing']['status']) {
   switch (status) {
-    case 'ok': return '倍率已探测'
-    case 'unsupported': return '不支持倍率'
-    case 'failed': return '倍率探测失败'
-    default: return '倍率待探测'
+    case 'ok': return uiI18n.t("uiExtra.channelMonitor.rateChecked")
+    case 'unsupported': return uiI18n.t("uiExtra.channelMonitor.rateReportingUnsupported")
+    case 'failed': return uiI18n.t("uiExtra.channelMonitor.rateProbeFailed")
+    default: return uiI18n.t("uiExtra.channelMonitor.rateProbePending")
   }
 }
 

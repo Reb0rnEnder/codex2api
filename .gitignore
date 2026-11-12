@@ -60,3 +60,16 @@ diagrams/
 
 # local e2e test scaffolding (mock upstream + scripts, not for CI)
 /local-test/
+
+# Local authentication captures and downloaded BasisPoints inspection assets
+/dev-resources/*.har
+/dev-resources/basispoints-inspect/
+
+# Private development captures and runtime databases never belong in the public fork.
+/dev-resources/
+*.har
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3

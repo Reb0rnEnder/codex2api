@@ -40,6 +40,16 @@ func (o *ClaudeAuth) FetchModelsForAccount(ctx context.Context, account *Account
 	if account == nil {
 		return nil, fmt.Errorf("missing Claude account")
 	}
+	if account.IsZcode() {
+		account.mu.RLock()
+		token, device := account.AccessToken, account.ZcodeDeviceID
+		account.mu.RUnlock()
+		q, err := FetchZcodeQuota(ctx, o.fallback, ZcodeBaseURL, token, device)
+		if err != nil {
+			return nil, err
+		}
+		return q.Models, nil
+	}
 	account.mu.RLock()
 	kind, token, base := account.ClaudeAuthKind, account.AccessToken, account.ClaudeBaseURL
 	customHeaders, identityMode := cloneStringMap(account.CustomHeaders), account.ClaudeFingerprintMode

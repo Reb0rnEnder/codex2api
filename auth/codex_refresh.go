@@ -352,7 +352,7 @@ func (s *Store) finishCodexRefresh(ctx context.Context, acc *Account, warning st
 func (s *Store) shouldBackgroundRefresh(acc *Account, codexOnly bool) bool {
 	acc.mu.RLock()
 	defer acc.mu.RUnlock()
-	codex := !acc.isRelayStyleLocked() && !acc.isCodexAgentIdentityLocked()
+	codex := (!acc.isRelayStyleLocked() || acc.BasisPoints) && !acc.isCodexAgentIdentityLocked()
 	if codex && atomic.LoadInt32(&acc.Disabled) != 0 {
 		return false
 	}

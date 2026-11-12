@@ -1,4 +1,6 @@
+import uiI18n from "../i18n";
 import { useIntelligenceBars } from "../hooks/useIntelligenceBars";
+import { BasisPointsAddForm } from "../components/BasisPointsAddForm";
 import AccountIntelligenceBar, { AccountIntelligenceActions } from "../components/AccountIntelligenceBar";
 import type { IntelligenceBar } from "../lib/intelligenceCheck";
 import type { ChangeEvent, DragEvent, ReactNode } from "react";
@@ -657,7 +659,7 @@ function parseModelTokens(value: string): string[] {
 
 /** Codex 官方 OAuth/AT 账号（非 OpenAI Responses 中转、非 Grok），即走 Codex 出站路径的账号。 */
 function isCodexOfficialAccount(account: AccountRow): boolean {
-  return !account.openai_responses_api && !account.grok_api;
+  return !account.openai_responses_api && !account.grok_api && !account.basispoints;
 }
 
 interface TimezoneSelectProps {
@@ -878,7 +880,7 @@ function mergeModelLists(current: string[], incoming: string[]): string[] {
 }
 
 function isOAuthAccount(account: AccountRow | null): boolean {
-  return account?.account_type === "oauth";
+  return account?.account_type === "oauth" && !account.basispoints;
 }
 
 // 跳转链接图标只给 API Key 类账号（有 api-base 可回退）；OAuth 账号不显示，
@@ -1287,7 +1289,7 @@ const AccountTableRow = memo(function AccountTableRow({
                               <TableCell className="min-w-[220px] whitespace-normal text-[14px] text-muted-foreground">
                                 <div className="flex min-w-0 items-center gap-2.5">
                                 <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card ring-1 ring-border shadow-sm">
-                                  {account.openai_responses_api ? (
+                                  {account.basispoints ? <span className="text-xs font-bold">BPS</span> : account.openai_responses_api ? (
                                     <ModelLogo model="openai" variant="plain" size={17} />
                                   ) : (
                                     <ChannelLogo channel="codex" size={32} className="rounded-lg" />
@@ -1636,7 +1638,7 @@ const AccountTableRow = memo(function AccountTableRow({
                                     size="icon-sm"
                                     className="size-8 text-muted-foreground hover:text-primary"
                                     onClick={() => actions.openQuickConfig(account)}
-                                    title="账号指纹与快捷配置"
+                                    title={uiI18n.t("uiExtra.accountQuickConfigSheet.accountFingerprintAndQuickSettings")}
                                   >
                                     <Fingerprint className="size-3.5 text-primary" />
                                   </Button>
@@ -2122,7 +2124,7 @@ export default function Accounts() {
     ids: [],
   });
   const [addMethod, setAddMethod] = useState<
-    "rt" | "st" | "at" | "session" | "openai" | "oauth" | "agentIdentity"
+    "rt" | "st" | "at" | "session" | "openai" | "oauth" | "agentIdentity" | "basispoints"
   >("oauth");
   const [agentIdentityJson, setAgentIdentityJson] = useState("");
   const [agentIdentityProxyUrl, setAgentIdentityProxyUrl] = useState("");
@@ -2363,17 +2365,13 @@ export default function Accounts() {
   }) => (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="block text-sm font-semibold text-muted-foreground">
-          上游自定义请求头 JSON
-        </label>
+        <label className="block text-sm font-semibold text-muted-foreground">{uiI18n.t("uiExtra.accounts.upstreamCustomHeadersJSON")}</label>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => onChange(CUSTOM_HEADERS_PLACEHOLDER)}
-        >
-          插入模板
-        </Button>
+        >{uiI18n.t("uiExtra.accounts.insertTemplate")}</Button>
       </div>
       <textarea
         className="w-full min-h-[140px] p-3 border border-input rounded-xl bg-background text-sm resize-y font-mono focus:outline-none focus:ring-2 focus:ring-ring"
@@ -2385,9 +2383,7 @@ export default function Accounts() {
         rows={6}
         spellCheck={false}
       />
-      <p className="mt-1.5 text-xs text-muted-foreground">
-        留空表示不设置；JSON 必须是对象，所有请求头值都必须是字符串。
-      </p>
+      <p className="mt-1.5 text-xs text-muted-foreground">{uiI18n.t("uiExtra.accounts.leaveEmptyToOmitCustomHeadersJSON")}</p>
     </div>
   );
 
@@ -2436,7 +2432,7 @@ export default function Accounts() {
     const switchToForm = () => {
       const parsed = parseModelMappingEntries(value);
       if (!parsed.ok) {
-        showToast("当前 JSON 无法转成填空模式，请先修正 JSON", "error");
+        showToast(uiI18n.t("uiExtra.accounts.fixTheJSONBeforeSwitchingToThe"), "error");
         return;
       }
       onEntriesChange(parsed.entries);
@@ -2446,7 +2442,7 @@ export default function Accounts() {
     const switchToJSON = () => {
       const serialized = serializeModelMappingEntries(entries);
       if (!serialized.ok) {
-        showToast("模型映射行必须成对填写，源模型不能重复", "error");
+        showToast(uiI18n.t("uiExtra.accounts.completeBothFieldsInEachModelMapping"), "error");
         return;
       }
       onChange(serialized.value);
@@ -2484,9 +2480,7 @@ export default function Accounts() {
     return (
       <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="block text-sm font-semibold text-muted-foreground">
-          单渠道模型映射
-        </label>
+        <label className="block text-sm font-semibold text-muted-foreground">{uiI18n.t("uiExtra.accounts.perChannelModelMapping")}</label>
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
             <button
@@ -2497,9 +2491,7 @@ export default function Accounts() {
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
-            >
-              填空
-            </button>
+            >{uiI18n.t("uiExtra.accounts.form")}</button>
             <button
               type="button"
               onClick={switchToJSON}
@@ -2517,9 +2509,7 @@ export default function Accounts() {
             variant="outline"
             size="sm"
             onClick={insertTemplate}
-          >
-            插入模板
-          </Button>
+          >{uiI18n.t("uiExtra.accounts.insertTemplate")}</Button>
         </div>
       </div>
       {mode === "form" ? (
@@ -2530,14 +2520,14 @@ export default function Accounts() {
               className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
             >
               <Input
-                placeholder="客户端模型，如 client-model / legacy-*"
+                placeholder={uiI18n.t("uiExtra.accounts.clientModelSuchAsClientModelLegacy")}
                 value={entry.from}
                 onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   updateEntry(index, "from", event.target.value)
                 }
               />
               <Input
-                placeholder="上游模型，如 gpt-4.1"
+                placeholder={uiI18n.t("uiExtra.accounts.upstreamModelSuchAsGpt41")}
                 value={entry.to}
                 onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   updateEntry(index, "to", event.target.value)
@@ -2552,7 +2542,7 @@ export default function Accounts() {
                 disabled={
                   entries.length === 1 && !entry.from.trim() && !entry.to.trim()
                 }
-                title="删除映射"
+                title={uiI18n.t("uiExtra.accounts.deleteMapping")}
               >
                 <X className="size-4" />
               </Button>
@@ -2566,9 +2556,7 @@ export default function Accounts() {
               onEntriesChange([...entries, { from: "", to: "" }])
             }
           >
-            <Plus className="size-3.5" />
-            添加映射
-          </Button>
+            <Plus className="size-3.5" />{uiI18n.t("uiExtra.accounts.addMapping")}</Button>
         </div>
       ) : (
         <textarea
@@ -2582,8 +2570,7 @@ export default function Accounts() {
           spellCheck={false}
         />
       )}
-      <p className="mt-1.5 text-xs text-muted-foreground">
-        留空表示使用原模型；左侧是客户端请求模型，右侧是该渠道上游模型，支持 * 通配。JSON 模式格式为 {"{"}"client-model":"upstream-model"{"}"}。
+      <p className="mt-1.5 text-xs text-muted-foreground">{uiI18n.t("uiExtra.accounts.leaveEmptyToKeepTheOriginalModel")}{"{"}"client-model":"upstream-model"{"}"}。
       </p>
     </div>
     );
@@ -3606,7 +3593,7 @@ export default function Accounts() {
   const handleAdd = async (credential: "rt" | "st" = "rt") => {
     const parsedCustomHeaders = parseCustomHeadersText(addCustomHeadersText);
     if (!parsedCustomHeaders.ok) {
-      showToast("自定义请求头必须是 JSON 对象，且所有值必须是字符串", "error");
+      showToast(uiI18n.t("uiExtra.accountQuickConfigSheet.customHeadersMustBeAJSONObject"), "error");
       return;
     }
     const payload: AddAccountRequest =
@@ -3678,7 +3665,7 @@ export default function Accounts() {
     if (!atForm.access_token.trim()) return;
     const parsedCustomHeaders = parseCustomHeadersText(addCustomHeadersText);
     if (!parsedCustomHeaders.ok) {
-      showToast("自定义请求头必须是 JSON 对象，且所有值必须是字符串", "error");
+      showToast(uiI18n.t("uiExtra.accountQuickConfigSheet.customHeadersMustBeAJSONObject"), "error");
       return;
     }
     setSubmitting(true);
@@ -3883,7 +3870,7 @@ export default function Accounts() {
     if (!openAIForm.api_key.trim() || models.length === 0) return;
     const parsedCustomHeaders = parseCustomHeadersText(addCustomHeadersText);
     if (!parsedCustomHeaders.ok) {
-      showToast("自定义请求头必须是 JSON 对象，且所有值必须是字符串", "error");
+      showToast(uiI18n.t("uiExtra.accountQuickConfigSheet.customHeadersMustBeAJSONObject"), "error");
       return;
     }
     const parsedModelMapping = resolveModelMappingValue(
@@ -3892,7 +3879,7 @@ export default function Accounts() {
       openAIModelMappingEntries,
     );
     if (!parsedModelMapping.ok) {
-      showToast("单渠道模型映射必须成对填写；JSON 模式必须是字符串对象，源模型不能重复", "error");
+      showToast(uiI18n.t("uiExtra.accounts.completeBothFieldsInEachPerChannel"), "error");
       return;
     }
     setSubmitting(true);
@@ -3970,7 +3957,7 @@ export default function Accounts() {
     }
     const parsedCustomHeaders = parseCustomHeadersText(editCustomHeadersText);
     if (!parsedCustomHeaders.ok) {
-      showToast("自定义请求头必须是 JSON 对象，且所有值必须是字符串", "error");
+      showToast(uiI18n.t("uiExtra.accountQuickConfigSheet.customHeadersMustBeAJSONObject"), "error");
       return;
     }
     const parsedModelMapping = resolveModelMappingValue(
@@ -3979,7 +3966,7 @@ export default function Accounts() {
       editOpenAIModelMappingEntries,
     );
     if (!parsedModelMapping.ok) {
-      showToast("单渠道模型映射必须成对填写；JSON 模式必须是字符串对象，源模型不能重复", "error");
+      showToast(uiI18n.t("uiExtra.accounts.completeBothFieldsInEachPerChannel"), "error");
       return;
     }
     setEditSubmitting(true);
@@ -4329,7 +4316,7 @@ export default function Accounts() {
   ) => {
     const parsedCustomHeaders = parseCustomHeadersText(customHeadersText ?? "");
     if (!parsedCustomHeaders.ok) {
-      showToast("自定义请求头必须是 JSON 对象，且所有值必须是字符串", "error");
+      showToast(uiI18n.t("uiExtra.accountQuickConfigSheet.customHeadersMustBeAJSONObject"), "error");
       return;
     }
 
@@ -6046,7 +6033,7 @@ export default function Accounts() {
     }
     const parsedCustomHeaders = parseCustomHeadersText(editCustomHeadersText);
     if (!parsedCustomHeaders.ok) {
-      showToast("自定义请求头必须是 JSON 对象，且所有值必须是字符串", "error");
+      showToast(uiI18n.t("uiExtra.accountQuickConfigSheet.customHeadersMustBeAJSONObject"), "error");
       return;
     }
 
@@ -8084,7 +8071,7 @@ export default function Accounts() {
                   >
                     {submitting ? t("accounts.adding") : t("accounts.submit")}
                   </Button>
-                ) : addMethod === "openai" ? (
+                ) : addMethod === "basispoints" ? null : addMethod === "openai" ? (
                   <Button
                     onClick={() => void handleAddOpenAIResponses()}
                     disabled={
@@ -8128,6 +8115,10 @@ export default function Accounts() {
           >
             {/* Tab switcher */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 mb-5 rounded-xl bg-muted/50 border border-border">
+              <button type="button" onClick={() => setAddMethod("basispoints")}
+                className={`rounded-lg px-2 py-2 text-sm font-semibold ${addMethod === "basispoints" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                ChatGPT BasisPoints
+              </button>
               <button
                 onClick={() => {
                   setAddMethod("oauth");
@@ -8212,7 +8203,9 @@ export default function Accounts() {
               </button>
             </div>
 
-            {addMethod === "rt" ? (
+            {addMethod === "basispoints" ? (
+              <BasisPointsAddForm onAdded={() => { setShowAdd(false); showToast(t("accounts.addSuccess")); void reload(); }} />
+            ) : addMethod === "rt" ? (
               <div className="space-y-4">
                 <div>
                   <label className="block mb-2 text-sm font-semibold text-muted-foreground">
@@ -9570,7 +9563,7 @@ export default function Accounts() {
                     <div className="rounded-xl border border-border/70 bg-card p-4.5 shadow-2xs space-y-4">
                       <div className="flex items-center gap-2 font-semibold text-foreground text-sm border-b border-border/50 pb-3">
                         <Settings2 className="size-4 text-primary" />
-                        <span>OpenAI Responses API 参数</span>
+                        <span>{uiI18n.t("uiExtra.accounts.openAIResponsesAPISettings")}</span>
                       </div>
                       <div>
                         <label className="block mb-2 text-xs font-semibold text-muted-foreground">
@@ -9962,7 +9955,7 @@ export default function Accounts() {
                           </div>
                           {scoreMode === "default" ? (
                             <div className="mt-3 flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3.5 py-2.5 text-xs">
-                              <span className="text-muted-foreground font-medium">当前默认加权</span>
+                              <span className="text-muted-foreground font-medium">{uiI18n.t("uiExtra.accounts.currentDefaultScoreBias")}</span>
                               <span className="font-mono font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
                                 {formatSignedNumber(getDefaultScoreBias(editingAccount.plan_type))}
                               </span>
@@ -10018,7 +10011,7 @@ export default function Accounts() {
                           </div>
                           {concurrencyMode === "default" ? (
                             <div className="mt-3 flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3.5 py-2.5 text-xs">
-                              <span className="text-muted-foreground font-medium">当前基础并发</span>
+                              <span className="text-muted-foreground font-medium">{uiI18n.t("uiExtra.accounts.currentBaseConcurrency")}</span>
                               <span className="font-mono font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                                 {getEffectiveBaseConcurrency(editingAccount)}
                               </span>
@@ -13725,6 +13718,7 @@ function AccountRowActionsMenu({
     refreshing || account.at_only || account.openai_responses_api;
   const authJsonDisabled =
     authJsonExporting ||
+    account.basispoints ||
     account.at_only ||
     account.openai_responses_api ||
     account.grok_api ||
@@ -13757,7 +13751,7 @@ function AccountRowActionsMenu({
       ? [
           {
             key: "channel-monitor",
-            label: "渠道监控",
+            label: uiI18n.t("uiExtra.channelMonitor.channelMonitoring"),
             icon: <RadioTower className="size-3.5" />,
             onSelect: onChannelMonitor,
           },
@@ -15178,10 +15172,10 @@ function ChannelMonitorRateBadge({
   const current = billing?.status === "ok";
   const lastSuccess = billing?.success_at
     ? formatRelativeTime(billing.success_at)
-    : "未知";
+    : uiI18n.t("uiExtra.accounts.unknown");
   const title = current
-    ? `上游当前计费倍率，上次探测 ${lastSuccess}`
-    : `上游最近一次成功计费倍率，成功于 ${lastSuccess}\n当前倍率探测状态：${billing?.status ?? "unknown"}`;
+    ? uiI18n.t("uiExtra.accounts.currentUpstreamBillingRateLastCheckedValue", { value0: (lastSuccess) })
+    : uiI18n.t("uiExtra.accounts.lastSuccessfulUpstreamBillingRateCheckedValue", { value0: (lastSuccess), value1: (billing?.status ?? "unknown") });
 
   return (
     <span
@@ -15193,8 +15187,7 @@ function ChannelMonitorRateBadge({
       )}
       title={title}
     >
-      <Gauge className="size-3 shrink-0" aria-hidden />
-      倍率 ×{formatChannelMonitorMultiplier(rate)}
+      <Gauge className="size-3 shrink-0" aria-hidden />{uiI18n.t("uiExtra.accounts.multiplier")}{formatChannelMonitorMultiplier(rate)}
     </span>
   );
 }

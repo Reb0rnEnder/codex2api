@@ -407,6 +407,8 @@ export interface AccountRow {
   access_token_type?: string
   account_type?: string
   openai_responses_api?: boolean
+  basispoints?: boolean
+  zcode?: boolean
   grok_api?: boolean
   antigravity_api?: boolean
   claude_api?: boolean

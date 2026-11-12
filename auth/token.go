@@ -12,6 +12,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -61,15 +62,22 @@ func RefreshAccessToken(ctx context.Context, refreshToken string, proxyURL strin
 	if err != nil {
 		return nil, nil, fmt.Errorf("编码刷新请求失败: %w", err)
 	}
+	identity, _ := ctx.Value(codexOAuthIdentityKey{}).(codexOAuthIdentity)
+	if identity.basisPoints {
+		data = []byte(url.Values{"grant_type": {"refresh_token"}, "client_id": {BasisPointsClientID}, "refresh_token": {refreshToken}}.Encode())
+	}
 
 	// Resin 反代模式：改写 URL
 	targetURL := TokenURL
+	if identity.basisPoints {
+		targetURL = BasisPointsTokenURL
+	}
 	accountID := ""
 	if len(resinAccountID) > 0 {
 		accountID = resinAccountID[0]
 	}
 	if ResinRequestDecorator != nil && accountID != "" {
-		targetURL = ResinRequestDecorator(TokenURL, accountID)
+		targetURL = ResinRequestDecorator(targetURL, accountID)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, bytes.NewReader(data))
@@ -79,6 +87,11 @@ func RefreshAccessToken(ctx context.Context, refreshToken string, proxyURL strin
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	applyCodexOAuthIdentity(req)
+	if identity.basisPoints {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("X-Basispoints-Auth-Mode", "chatgpt")
+		req.Header.Set("Origin", "https://bps.openai.com")
+	}
 
 	// Resin 反代：注入账号身份头
 	if ResinRequestDecorator != nil && accountID != "" {

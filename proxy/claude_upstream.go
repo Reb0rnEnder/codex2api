@@ -102,6 +102,9 @@ func DefaultClaudeModelIDsForAccount(account *auth.Account) []string {
 	if account == nil {
 		return nil
 	}
+	if account.IsZcode() {
+		return account.CodexModels()
+	}
 	account.Mu().RLock()
 	whitelist := append([]string(nil), account.Models...)
 	account.Mu().RUnlock()
@@ -129,6 +132,14 @@ func DefaultClaudeModelIDsForAccount(account *auth.Account) []string {
 // 若账号设置了显式 Models 白名单,以白名单为准;否则默认放行 claude-* 模型。
 func claudeAccountSupportsModel(account *auth.Account, model string) bool {
 	if account == nil {
+		return false
+	}
+	if account.IsZcode() {
+		for _, candidate := range account.CodexModels() {
+			if strings.EqualFold(candidate, strings.TrimSpace(model)) {
+				return true
+			}
+		}
 		return false
 	}
 	model = strings.TrimSpace(model)
@@ -186,6 +197,9 @@ func ExecuteClaudeMessagesRequestWithPolicy(ctx context.Context, account *auth.A
 	resetUpstreamUserAgentAudit(ctx)
 	if account == nil {
 		return nil, ErrNoAvailableAccount()
+	}
+	if account.IsZcode() {
+		return executeZcodeMessages(ctx, account, requestBody, proxyOverride)
 	}
 	if account.IsClaudeAPIKey() {
 		return executeClaudeAPIKeyMessages(ctx, account, requestBody, proxyOverride, headers)

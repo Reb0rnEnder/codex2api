@@ -1,3 +1,4 @@
+import uiI18n from "../i18n";
 import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -63,10 +64,10 @@ function getDefaultScoreBias(planType?: string | null): number {
 }
 
 const SAVE_ERROR_TOAST: Record<QuickConfigReadySaveError, string> = {
-  invalid_headers: "自定义请求头必须是 JSON 对象，且所有值必须是字符串",
-  invalid_score: "自定义加权分必须在 -200 到 200 之间",
-  invalid_concurrency: "基础并发覆盖必须大于等于 1",
-  invalid_priority: "调度优先级必须在 -100 到 100 之间",
+  invalid_headers: uiI18n.t("uiExtra.accountQuickConfigSheet.customHeadersMustBeAJSONObject"),
+  invalid_score: uiI18n.t("uiExtra.accountQuickConfigSheet.customScoreBiasMustBeBetween200"),
+  invalid_concurrency: uiI18n.t("uiExtra.accountQuickConfigSheet.baseConcurrencyOverrideMustBeAtLeast"),
+  invalid_priority: uiI18n.t("uiExtra.accountQuickConfigSheet.schedulingPriorityMustBeBetween100And"),
 };
 
 interface AccountQuickConfigSheetProps {
@@ -166,11 +167,11 @@ export default function AccountQuickConfigSheet({
     setSaving(true);
     try {
       await api.updateAccountScheduler(account.id, result.payload);
-      showToast("账号配置与设备指纹已保存");
+      showToast(uiI18n.t("uiExtra.accountQuickConfigSheet.accountSettingsAndDeviceFingerprintSaved"));
       onSaved();
       onClose();
     } catch (err) {
-      showToast(`保存失败: ${getErrorMessage(err)}`, "error");
+      showToast(uiI18n.t("uiExtra.channelMonitorConfigDialog.saveFailedValue", { value0: (getErrorMessage(err)) }), "error");
     } finally {
       setSaving(false);
     }
@@ -208,9 +209,7 @@ export default function AccountQuickConfigSheet({
               <Fingerprint className="size-4.5" />
             </div>
             <div className="min-w-0">
-              <SheetTitle className="text-base font-bold text-foreground">
-                账号指纹与快捷配置
-              </SheetTitle>
+              <SheetTitle className="text-base font-bold text-foreground">{uiI18n.t("uiExtra.accountQuickConfigSheet.accountFingerprintAndQuickSettings")}</SheetTitle>
               <SheetDescription className="truncate text-xs text-muted-foreground">
                 {account.email || account.name || `ID ${account.id}`}
               </SheetDescription>
@@ -225,8 +224,7 @@ export default function AccountQuickConfigSheet({
                 <div className="text-xs font-bold text-foreground truncate">
                   {account.email || account.name || `ID ${account.id}`}
                 </div>
-                <div className="text-[11px] text-muted-foreground">
-                  账号 ID: {account.id} · 套餐: {account.plan_type || "Standard"}
+                <div className="text-[11px] text-muted-foreground">{uiI18n.t("uiExtra.accountQuickConfigSheet.accountID")}{account.id}{uiI18n.t("uiExtra.accountQuickConfigSheet.plan")}{account.plan_type || "Standard"}
                 </div>
               </div>
               <Badge variant="outline" className="text-xs font-mono font-semibold">
@@ -285,9 +283,7 @@ export default function AccountQuickConfigSheet({
           <div className="rounded-xl border border-border/70 bg-card p-4 shadow-2xs space-y-3.5">
             <div className="flex items-center gap-2 border-b border-border/50 pb-2.5">
               <Gauge className="size-4 text-amber-500" />
-              <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                调度与并发加权
-              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground">{uiI18n.t("uiExtra.accountQuickConfigSheet.schedulingAndConcurrencyWeights")}</span>
             </div>
 
             <div className="space-y-2">
@@ -321,7 +317,7 @@ export default function AccountQuickConfigSheet({
               </div>
               {scoreMode === "default" ? (
                 <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground flex justify-between items-center">
-                  <span>跟随套餐默认</span>
+                  <span>{uiI18n.t("uiExtra.accountQuickConfigSheet.usePlanDefault")}</span>
                   <span className="font-mono font-bold text-primary">
                     {formatSignedNumber(getDefaultScoreBias(account.plan_type))}
                   </span>
@@ -369,7 +365,7 @@ export default function AccountQuickConfigSheet({
               </div>
               {concurrencyMode === "default" ? (
                 <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground flex justify-between items-center">
-                  <span>跟随分组/全局</span>
+                  <span>{uiI18n.t("uiExtra.accountQuickConfigSheet.inheritGroupGlobalSettings")}</span>
                   <span className="font-mono font-bold text-primary">
                     {account.base_concurrency_effective ?? 2}
                   </span>
@@ -404,9 +400,7 @@ export default function AccountQuickConfigSheet({
           <div className="rounded-xl border border-border/70 bg-card p-4 shadow-2xs space-y-3.5">
             <div className="flex items-center gap-2 border-b border-border/50 pb-2.5">
               <Globe className="size-4 text-indigo-500" />
-              <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                防护与网络代理
-              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground">{uiI18n.t("uiExtra.accountQuickConfigSheet.protectionAndProxy")}</span>
             </div>
 
             <div className="flex items-center justify-between gap-3">
@@ -442,9 +436,7 @@ export default function AccountQuickConfigSheet({
             </div>
 
             <div className="space-y-1.5 pt-1 border-t border-border/40">
-              <label className="block text-xs font-semibold text-foreground">
-                代理服务器 (Proxy URL)
-              </label>
+              <label className="block text-xs font-semibold text-foreground">{uiI18n.t("uiExtra.accountQuickConfigSheet.proxyURL")}</label>
               <Input
                 value={form.proxyUrl}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -455,17 +447,15 @@ export default function AccountQuickConfigSheet({
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-foreground" htmlFor="upstream-request-id-header">上游请求 ID 响应头</label>
+              <label className="block text-xs font-semibold text-foreground" htmlFor="upstream-request-id-header">{uiI18n.t("uiExtra.accountQuickConfigSheet.upstreamRequestIDResponseHeader")}</label>
               <Input id="upstream-request-id-header" maxLength={64} value={form.upstreamRequestIdHeader}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => patchForm({ upstreamRequestIdHeader: e.target.value })}
-                placeholder="自动识别 X-Request-ID / Request-ID" />
-              <p className="text-[11px] text-muted-foreground">填写上游用于定位请求的响应头名称，留空自动识别。WebSocket 轮次不记录握手请求 ID。</p>
+                placeholder={uiI18n.t("uiExtra.accountQuickConfigSheet.autoDetectXRequestIDRequestID")} />
+              <p className="text-[11px] text-muted-foreground">{uiI18n.t("uiExtra.accountQuickConfigSheet.enterTheUpstreamResponseHeaderUsedTo")}</p>
             </div>
 
             <div className="space-y-1.5 pt-1 border-t border-border/40">
-              <label className="block text-xs font-semibold text-foreground">
-                自定义请求头 JSON
-              </label>
+              <label className="block text-xs font-semibold text-foreground">{uiI18n.t("uiExtra.accountQuickConfigSheet.customHeadersJSON")}</label>
               <textarea
                 rows={3}
                 value={form.customHeadersText}
@@ -481,9 +471,7 @@ export default function AccountQuickConfigSheet({
           <div className="rounded-xl border border-border/70 bg-card p-4 shadow-2xs space-y-3.5">
             <div className="flex items-center gap-2 border-b border-border/50 pb-2.5">
               <Tag className="size-4 text-violet-500" />
-              <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                标签与分组
-              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground">{uiI18n.t("uiExtra.accountQuickConfigSheet.tagsAndGroups")}</span>
             </div>
 
             <div className="space-y-1.5">
@@ -530,9 +518,7 @@ export default function AccountQuickConfigSheet({
               <Loader2 className="size-4 animate-spin" />
             ) : (
               <Save className="size-4" />
-            )}
-            保存配置
-          </Button>
+            )}{uiI18n.t("uiExtra.intelligenceCheck.saveSettings")}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

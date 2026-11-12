@@ -394,7 +394,7 @@ func (h *Handler) probeImportedAccountUsage(ctx context.Context, accountID int64
 }
 
 func shouldMergeImportedIdentity(account *auth.Account) bool {
-	return account != nil && !account.IsCodexAgentIdentity() && !account.IsClaudeOAuth()
+	return account != nil && !account.IsCodexAgentIdentity() && !account.IsClaudeOAuth() && !account.IsBasisPoints()
 }
 
 func (h *Handler) startDBBackgroundTask(task func(context.Context)) bool {
@@ -1162,6 +1162,12 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 	api.POST("/accounts/codex/agent-identity", h.ImportCodexAgentIdentity)
 	api.POST("/accounts/codex/agent-identity/import", h.BatchImportCodexAgentIdentity)
 	api.POST("/accounts/openai-responses", h.AddOpenAIResponsesAccount)
+	api.POST("/accounts/basispoints/oauth/start", h.StartBasisPointsOAuth)
+	api.POST("/accounts/zcode", h.AddZcodeAccount)
+	api.POST("/accounts/:id/zcode/claim", h.ClaimZcodePlans)
+	api.POST("/accounts/zcode/login/start", h.StartZcodeLogin)
+	api.POST("/accounts/zcode/login/poll", h.PollZcodeLogin)
+	api.POST("/accounts/basispoints/oauth/complete", h.CompleteBasisPointsOAuth)
 	api.POST("/accounts/openai-responses/models", h.FetchOpenAIResponsesModels)
 	api.PATCH("/accounts/:id/openai-responses", h.UpdateOpenAIResponsesAccount)
 	api.GET("/accounts/:id/openai-responses/balance", h.GetOpenAIResponsesBalance)
@@ -1740,6 +1746,8 @@ type accountResponse struct {
 	AccountType                   string                      `json:"account_type,omitempty"`
 	AccessTokenType               string                      `json:"access_token_type,omitempty"`
 	OpenAIResponsesAPI            bool                        `json:"openai_responses_api,omitempty"`
+	BasisPoints                   bool                        `json:"basispoints,omitempty"`
+	Zcode                         bool                        `json:"zcode,omitempty"`
 	GrokAPI                       bool                        `json:"grok_api,omitempty"`
 	AntigravityAPI                bool                        `json:"antigravity_api,omitempty"`
 	ClaudeAPI                     bool                        `json:"claude_api,omitempty"`
@@ -4726,8 +4734,12 @@ func (h *Handler) UpdateAccountModels(c *gin.Context) {
 		writeError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if account.IsRelayStyle() && !account.IsClaudeOAuth() {
+	if account.IsRelayStyle() && !account.IsClaudeOAuth() && !account.IsBasisPoints() {
 		writeError(c, http.StatusBadRequest, "中转/Grok 账号请在账号设置中编辑模型列表")
+		return
+	}
+	if account.IsBasisPoints() && len(models) == 0 {
+		writeError(c, http.StatusBadRequest, "BasisPoints requires at least one available model")
 		return
 	}
 
@@ -4748,6 +4760,17 @@ func (h *Handler) UpdateAccountModels(c *gin.Context) {
 // claude-* IDs so a stale Codex/Grok entry can never make a Claude account
 // appear routable for an incompatible protocol.
 func validateAccountModelsForAccount(account *auth.Account, models []string) error {
+	if account != nil && account.IsZcode() {
+		if len(models) == 0 {
+			return fmt.Errorf("Zcode requires at least one GLM model")
+		}
+		for _, model := range models {
+			if !strings.HasPrefix(strings.ToLower(model), "glm-") {
+				return fmt.Errorf("Zcode models must use GLM model IDs")
+			}
+		}
+		return nil
+	}
 	if account == nil || !account.IsClaudeOAuth() {
 		return nil
 	}
@@ -4804,6 +4827,20 @@ func (h *Handler) SyncAccountUpstreamModels(c *gin.Context) {
 			return
 		}
 		models = auth.NormalizeAccountModels(models)
+		c.JSON(http.StatusOK, gin.H{"models": models})
+		return
+	}
+	if account.IsBasisPoints() {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+		defer cancel()
+		account.Mu().RLock()
+		accountID := account.AccountID
+		account.Mu().RUnlock()
+		models, _, err := auth.FetchBasisPointsModels(ctx, account.GetAccessToken(), accountID, h.store.ResolveProxyForAccount(account))
+		if err != nil {
+			writeError(c, http.StatusBadGateway, err.Error())
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"models": models})
 		return
 	}

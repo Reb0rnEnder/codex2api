@@ -36,6 +36,6 @@ test('conflict actions require structured account details and never infer IDs fr
   }
 })
 test('a quota wait is labelled without promising a check time', () => {
-  assert.equal(intelligenceScheduleLabel({ enabled: true, action: 'none', records: [], probe_phase: 'quota_wait', next_due_at: null }), '等待额度恢复')
+  assert.equal(intelligenceScheduleLabel({ enabled: true, action: 'none', records: [], probe_phase: 'quota_wait', next_due_at: null }), 'Waiting for quota to recover')
   assert.equal(intelligenceScheduleLabel({ enabled: true, action: 'none', records: [] }), '')
 })

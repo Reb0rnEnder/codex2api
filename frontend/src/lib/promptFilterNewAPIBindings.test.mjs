@@ -3,7 +3,14 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { extractBalancedBody } from './sourceBoundary.mjs'
 
-const componentSource = readFileSync(new URL('../components/PromptFilterNewAPIBindings.tsx', import.meta.url), 'utf8')
+const componentFileSource = readFileSync(new URL('../components/PromptFilterNewAPIBindings.tsx', import.meta.url), 'utf8')
+const chineseCatalog = JSON.parse(readFileSync(new URL('../locales/zh.json', import.meta.url), 'utf8'))
+// Validate the warnings actually referenced by the component after extraction
+// into the translation catalog, rather than requiring inline Chinese literals.
+const componentSource = componentFileSource.replace(/uiI18n\.t\("([^"]+)"\)/g, (expression, key) => {
+  const value = key.split('.').reduce((object, part) => object?.[part], chineseCatalog)
+  return typeof value === 'string' ? JSON.stringify(value) : expression
+})
 const pageSource = readFileSync(new URL('../pages/PromptFilter.tsx', import.meta.url), 'utf8')
 const apiSource = readFileSync(new URL('../api.ts', import.meta.url), 'utf8')
 const typesSource = readFileSync(new URL('../types.ts', import.meta.url), 'utf8')

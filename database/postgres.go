@@ -8986,6 +8986,9 @@ func (db *DB) FindActiveAccountByOAuthIdentity(ctx context.Context, email, works
 		if strings.ToLower(strings.TrimSpace(credentialString(raw, "email"))) != email {
 			continue
 		}
+		if credentialString(raw, "basispoints") == "true" {
+			continue // The Office OAuth client is a separate identity from Codex.
+		}
 		if openaiidentity.NormalizeWorkspaceID(credentialString(raw, "workspace_id")) == workspaceID {
 			return id, nil
 		}
@@ -9042,6 +9045,9 @@ func (db *DB) FindActiveAccountByOAuthRouteIdentity(ctx context.Context, email, 
 		}
 		if strings.ToLower(strings.TrimSpace(credentialString(raw, "email"))) != email {
 			continue
+		}
+		if credentialString(raw, "basispoints") == "true" {
+			continue // Keep Office credentials out of Codex route deduplication.
 		}
 		candidateWorkspaceID := openaiidentity.EffectiveWorkspaceID(
 			credentialString(raw, "workspace_id"),

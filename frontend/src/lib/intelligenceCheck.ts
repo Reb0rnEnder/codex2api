@@ -1,3 +1,6 @@
+import i18next from "i18next";
+const checkLabel = (key: string, fallback: string): string => i18next.isInitialized ? String(i18next.t("intelligenceLabels." + key, { defaultValue: fallback })) : fallback;
+
 export type IntelligenceStatus =
   "queued" | "running" | "normal" | "degraded" | "error" | "interrupted";
 export type IntelligenceAction = "none" | "pause" | "switch_group";
@@ -119,17 +122,17 @@ export interface IntelligencePage<T> {
   page_size: number;
 }
 export const intelligenceLabels: Record<string, string> = {
-  queued: "等待执行",
-  running: "检测中",
-  normal: "正常",
-  degraded: "未通过",
-  error: "上游错误",
-  interrupted: "已中断",
-  resume: "恢复调度",
-  restore_groups: "还原分组",
-  none: "无处置",
-  pause: "检测暂停调度",
-  switch_group: "检测切换分组",
+  get queued() { return checkLabel("queued", "Queued"); },
+  get running() { return checkLabel("running", "Checking"); },
+  get normal() { return checkLabel("normal", "Healthy"); },
+  get degraded() { return checkLabel("degraded", "Failed"); },
+  get error() { return checkLabel("error", "Upstream error"); },
+  get interrupted() { return checkLabel("interrupted", "Interrupted"); },
+  get resume() { return checkLabel("resume", "Resume scheduling"); },
+  get restore_groups() { return checkLabel("restore_groups", "Restore groups"); },
+  get none() { return checkLabel("none", "No action"); },
+  get pause() { return checkLabel("pause", "Pause scheduling"); },
+  get switch_group() { return checkLabel("switch_group", "Switch groups"); },
 };
 export function intelligenceColor(status: string): string | undefined {
   return (
@@ -177,14 +180,17 @@ export function latestRequestGuard() {
 
 export function intelligenceScheduleLabel(bar: IntelligenceBar): string {
   const labels: Record<string, string> = {
-    normal: '正常检测', backoff: '退避中', recovering: '恢复确认',
-    retrying: '异常重试', credential_blocked: '等待凭证修复',
-    quota_wait: '等待额度恢复',
+    normal: checkLabel("phase_normal", "Normal checks"),
+    backoff: checkLabel("phase_backoff", "Backing off"),
+    recovering: checkLabel("phase_recovering", "Confirming recovery"),
+    retrying: checkLabel("phase_retrying", "Retrying after an error"),
+    credential_blocked: checkLabel("phase_credential_blocked", "Waiting for credentials to be fixed"),
+    quota_wait: checkLabel("phase_quota_wait", "Waiting for quota to recover"),
   };
   const label = labels[bar.probe_phase || ''];
   if (!label) return '';
   if (bar.probe_phase === 'credential_blocked') return label;
-  const progress = bar.probe_phase === 'recovering' ? ` · 连续通过 ${bar.passed_streak ?? 0} 次` : '';
-  const due = bar.enabled && bar.next_due_at ? ` · 下次 ${new Date(bar.next_due_at).toLocaleString()}` : '';
+  const progress = bar.probe_phase === 'recovering' ? " \u00b7 " + (i18next.isInitialized ? i18next.t("intelligenceLabels.passedStreak", { count: bar.passed_streak ?? 0, defaultValue: "Consecutive passes: {{count}}" }) : `Consecutive passes: ${bar.passed_streak ?? 0}`) : "";
+  const due = bar.enabled && bar.next_due_at ? " \u00b7 " + checkLabel("next", "Next") + " " + new Date(bar.next_due_at).toLocaleString() : "";
   return label + progress + due;
 }

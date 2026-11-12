@@ -1,3 +1,5 @@
+import uiI18n from "../i18n";
+import { useTranslation as useUILanguage } from "react-i18next";
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -98,32 +100,30 @@ function BindingFormFields({
           <Select
             value={form.apiKeyId}
             disabled={editing}
-            placeholder="选择用于接入的 Codex2API Key"
+            placeholder={uiI18n.t("uiExtra.promptFilterNewAPIBindings.selectTheCodex2APIKeyUsedForThis")}
             onValueChange={(apiKeyId) => setForm({ ...form, apiKeyId })}
             options={apiKeys.map((apiKey) => ({ value: String(apiKey.id), label: apiKeyLabel(apiKey) }))}
           />
-          <span className="block text-xs leading-5 text-muted-foreground">
-            一个 Key 只能绑定一个调用方；未绑定 Key 不接受 NewAPI 签名身份。
-          </span>
+          <span className="block text-xs leading-5 text-muted-foreground">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.eachKeyCanBindToOneCaller")}</span>
         </label>
         <label className="space-y-1.5">
-          <span className="text-sm font-medium">调用方代码</span>
+          <span className="text-sm font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.callerCode")}</span>
           <Input
             value={form.platformCode}
-            placeholder="输入唯一接入标识"
+            placeholder={uiI18n.t("uiExtra.promptFilterNewAPIBindings.enterAUniqueIntegrationIdentifier")}
             maxLength={32}
             onChange={(event) => setForm({
               ...form,
               platformCode: event.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''),
             })}
           />
-          <span className="block text-xs leading-5 text-muted-foreground">仅支持小写字母、数字、下划线和短横线，最长 32 字符且全局唯一。</span>
+          <span className="block text-xs leading-5 text-muted-foreground">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.useLowercaseLettersNumbersUnderscoresAndHyphens")}</span>
         </label>
         <label className="space-y-1.5">
-          <span className="text-sm font-medium">调用方名称</span>
+          <span className="text-sm font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.callerName")}</span>
           <Input
             value={form.platformName}
-            placeholder="输入便于识别的名称"
+            placeholder={uiI18n.t("uiExtra.promptFilterNewAPIBindings.enterARecognizableName")}
             maxLength={255}
             onChange={(event) => setForm({ ...form, platformName: event.target.value })}
           />
@@ -131,38 +131,37 @@ function BindingFormFields({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <BindingSwitch
-          label="启用此绑定"
-          description="关闭后，该 Key 不接受此调用方的签名身份，也不会使用其他 Key 的绑定。"
+          label={uiI18n.t("uiExtra.promptFilterNewAPIBindings.enableThisBinding")}
+          description={uiI18n.t("uiExtra.promptFilterNewAPIBindings.whenDisabledThisKeyWillNotAccept")}
           checked={form.enabled}
           onCheckedChange={(enabled) => setForm({ ...form, enabled })}
         />
         <BindingSwitch
-          label="强制签名身份"
-          description="默认关闭。确认对应 NewAPI 已正确配置此绑定的密钥后再开启，否则请求会因缺少或签名错误而被拒绝。"
+          label={uiI18n.t("uiExtra.promptFilterNewAPIBindings.requireSignedIdentity")}
+          description={uiI18n.t("uiExtra.promptFilterNewAPIBindings.disabledByDefaultEnableOnlyAfterConfiguring")}
           checked={form.requireSignedIdentity}
           onCheckedChange={(requireSignedIdentity) => setForm({ ...form, requireSignedIdentity })}
         />
       </div>
       <label className="block space-y-1.5 rounded-lg border border-border/70 bg-muted/20 p-3">
-        <span className="text-sm font-medium">该 Key 的 Prompt 检查范围</span>
+        <span className="text-sm font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.promptCheckScopeForThisKey")}</span>
         <Select
           value={form.promptFilterScope}
           onValueChange={(promptFilterScope) => setForm({ ...form, promptFilterScope: promptFilterScope as PromptFilterScope })}
           options={[
-            { value: 'inherit', label: '继承全局：本地检测 + 远程模型复核' },
-            { value: 'local_only', label: '仅本地检测：跳过远程模型复核' },
-            { value: 'off', label: '完全跳过：不执行 Prompt 检查' },
+            { value: 'inherit', label: uiI18n.t("uiExtra.promptFilterNewAPIBindings.inheritGlobalLocalChecksAndRemoteModel") },
+            { value: 'local_only', label: uiI18n.t("uiExtra.promptFilterNewAPIBindings.localChecksOnlySkipRemoteModelReview") },
+            { value: 'off', label: uiI18n.t("uiExtra.promptFilterNewAPIBindings.skipAllPromptChecks") },
           ]}
         />
-        <span className="block text-xs leading-5 text-muted-foreground">
-          “仅本地检测”仍会执行高危规则、会话关联、审计记录与风险画像；“完全跳过”只保留 API Key 和签名身份校验，适合明确受控的内部调用方。
-        </span>
+        <span className="block text-xs leading-5 text-muted-foreground">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.localOnlyModeStillAppliesHighRisk")}</span>
       </label>
     </div>
   )
 }
 
 export default function PromptFilterNewAPIBindings() {
+  useUILanguage();
   const [apiKeys, setAPIKeys] = useState<APIKeyRow[]>([])
   const [bindings, setBindings] = useState<PromptFilterNewAPIBinding[]>([])
   const [loading, setLoading] = useState(true)
@@ -226,7 +225,7 @@ export default function PromptFilterNewAPIBindings() {
 
   const revealSecret = (platformName: string, secret?: string) => {
     if (!secret) {
-      showToast('操作成功，但服务器没有返回一次性密钥，请重新轮换。', 'error')
+      showToast(uiI18n.t("uiExtra.promptFilterNewAPIBindings.theOperationSucceededButTheServerDid"), 'error')
       return
     }
     setSecretCopied(false)
@@ -236,14 +235,14 @@ export default function PromptFilterNewAPIBindings() {
   const createBinding = async () => {
     const apiKeyId = Number(createForm.apiKeyId)
     if (!Number.isInteger(apiKeyId) || apiKeyId <= 0 || !createForm.platformCode.trim()) {
-      showToast('请选择 Codex2API Key，并填写调用方代码。', 'error')
+      showToast(uiI18n.t("uiExtra.promptFilterNewAPIBindings.selectACodex2APIKeyAndEnterA"), 'error')
       return
     }
     if (createForm.promptFilterScope === 'off') {
       const approved = await confirm({
-        title: '确认让该 Key 跳过全部 Prompt 检查？',
-        description: '该 Key 的请求将不执行本地高危规则和远程模型复核。API Key 鉴权及可选的 NewAPI 签名身份校验仍会保留。',
-        confirmText: '确认完全跳过',
+        title: uiI18n.t("uiExtra.promptFilterNewAPIBindings.allowThisKeyToSkipAllPrompt"),
+        description: uiI18n.t("uiExtra.promptFilterNewAPIBindings.requestsUsingThisKeyWillSkipLocal"),
+        confirmText: uiI18n.t("uiExtra.promptFilterNewAPIBindings.confirmSkipAll"),
         tone: 'warning',
       })
       if (!approved) return
@@ -272,22 +271,20 @@ export default function PromptFilterNewAPIBindings() {
     if (!editing || !editForm.platformCode.trim()) return
     if (!editing.require_signed_identity && editForm.requireSignedIdentity) {
       const approved = await confirm({
-        title: '确认开启强制签名身份？',
+        title: uiI18n.t("uiExtra.promptFilterNewAPIBindings.requireSignedIdentity154"),
         description: (
-          <span>
-            必须先在“{editForm.platformName.trim() || editForm.platformCode.trim()}”对应的 NewAPI 配置此绑定的密钥；否则开启后，该 Codex2API Key 的请求会立即返回 401。签名失败属于身份校验错误，不会记为 Prompt 违规，也不会触发违规处罚。
-          </span>
+          <span>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.firstConfigureThisBindingSSecretIn")}{editForm.platformName.trim() || editForm.platformCode.trim()}{uiI18n.t("uiExtra.promptFilterNewAPIBindings.otherwiseRequestsUsingThisCodex2APIKeyWill")}</span>
         ),
-        confirmText: '已配置，确认开启',
+        confirmText: uiI18n.t("uiExtra.promptFilterNewAPIBindings.configuredEnableNow"),
         tone: 'warning',
       })
       if (!approved) return
     }
     if (editing.prompt_filter_scope !== 'off' && editForm.promptFilterScope === 'off') {
       const approved = await confirm({
-        title: '确认让该 Key 跳过全部 Prompt 检查？',
-        description: '保存后，该 Key 将不再执行本地高危规则和远程模型复核。API Key 鉴权及可选的 NewAPI 签名身份校验仍会保留。',
-        confirmText: '确认完全跳过',
+        title: uiI18n.t("uiExtra.promptFilterNewAPIBindings.allowThisKeyToSkipAllPrompt"),
+        description: uiI18n.t("uiExtra.promptFilterNewAPIBindings.afterSavingThisKeyWillSkipLocal"),
+        confirmText: uiI18n.t("uiExtra.promptFilterNewAPIBindings.confirmSkipAll"),
         tone: 'warning',
       })
       if (!approved) return
@@ -303,7 +300,7 @@ export default function PromptFilterNewAPIBindings() {
       })
       setEditing(null)
       await load()
-      showToast('审计身份绑定已更新。')
+      showToast(uiI18n.t("uiExtra.promptFilterNewAPIBindings.auditIdentityBindingUpdated"))
     } catch (updateError) {
       showToast(getErrorMessage(updateError), 'error')
     } finally {
@@ -315,7 +312,7 @@ export default function PromptFilterNewAPIBindings() {
     if (!rotating) return
     const grace = Number(graceSeconds)
     if (!Number.isInteger(grace) || grace < 60 || grace > 86400) {
-      showToast('自动生成新密钥时，宽限秒数必须是 60 到 86400 之间的整数。', 'error')
+      showToast(uiI18n.t("uiExtra.promptFilterNewAPIBindings.theOldSecretGracePeriodMustBe"), 'error')
       return
     }
     setSaving(true)
@@ -333,13 +330,11 @@ export default function PromptFilterNewAPIBindings() {
 
   const deleteBinding = async (binding: PromptFilterNewAPIBinding) => {
     const approved = await confirm({
-      title: `删除“${binding.platform_name || binding.platform_code}”绑定？`,
+      title: uiI18n.t("uiExtra.promptFilterNewAPIBindings.deleteTheBindingForValue", { value0: (binding.platform_name || binding.platform_code) }),
       description: (
-        <span>
-          删除后，Key #{binding.api_key_id} 将不再接受 NewAPI 签名身份；请先确认该调用方已停止使用此 Key。
-        </span>
+        <span>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.afterDeletionKey")}{binding.api_key_id}{uiI18n.t("uiExtra.promptFilterNewAPIBindings.willNoLongerAcceptNewAPISignedIdentities")}</span>
       ),
-      confirmText: '确认删除',
+      confirmText: uiI18n.t("uiExtra.promptFilterNewAPIBindings.confirmDeletion"),
       tone: 'destructive',
       confirmVariant: 'destructive',
     })
@@ -347,7 +342,7 @@ export default function PromptFilterNewAPIBindings() {
     try {
       await api.deletePromptFilterNewAPIBinding(binding.api_key_id)
       await load()
-      showToast('审计身份绑定已删除。')
+      showToast(uiI18n.t("uiExtra.promptFilterNewAPIBindings.auditIdentityBindingDeleted"))
     } catch (deleteError) {
       showToast(getErrorMessage(deleteError), 'error')
     }
@@ -358,9 +353,9 @@ export default function PromptFilterNewAPIBindings() {
     try {
       await navigator.clipboard.writeText(secretReveal.secret)
       setSecretCopied(true)
-      showToast('绑定密钥已复制。')
+      showToast(uiI18n.t("uiExtra.promptFilterNewAPIBindings.bindingSecretCopied"))
     } catch {
-      showToast('复制失败，请手动选择并复制密钥。', 'error')
+      showToast(uiI18n.t("uiExtra.promptFilterNewAPIBindings.copyFailedSelectAndCopyTheSecret"), 'error')
     }
   }
 
@@ -382,68 +377,55 @@ export default function PromptFilterNewAPIBindings() {
           <div>
             <div className="flex items-center gap-2">
               <KeyRound className="size-5 text-primary" />
-              <h4 id="newapi-key-bindings-title" className="text-sm font-semibold">按 Codex2API Key 绑定审计身份</h4>
+              <h4 id="newapi-key-bindings-title" className="text-sm font-semibold">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.bindAuditIdentitiesToCodex2APIKeys")}</h4>
             </div>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              将签名身份与实际请求使用的 Codex2API Key 对应起来，并可为指定 Key 缩小 Prompt 检查范围。
-              全局阈值和审核档位仍由 GuardPipeline 管理，调用方不能通过请求头或元数据修改此策略。
-            </p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.associateASignedIdentityWithTheKey")}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-              刷新
-            </Button>
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />{uiI18n.t("uiExtra.channelMonitor.refresh")}</Button>
             <Button size="sm" onClick={openCreate} disabled={loading || availableAPIKeys.length === 0}>
-              <Plus className="size-4" />
-              新增绑定
-            </Button>
+              <Plus className="size-4" />{uiI18n.t("uiExtra.promptFilterNewAPIBindings.addBinding")}</Button>
           </div>
         </div>
 
         <div className="flex items-start gap-3 rounded-lg border border-sky-500/25 bg-sky-500/[0.06] p-3">
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-sky-600 dark:text-sky-300" />
           <div className="text-sm leading-6">
-            <div className="font-medium">绑定后使用该 Key 的审计密钥</div>
-            <div className="text-muted-foreground">
-              签名缺失、调用方代码错误或密钥不匹配时，不会借用其他 Key 的身份，也不会把审计记录关联到错误绑定。
-            </div>
+            <div className="font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.useTheAuditSecretAssignedToThis")}</div>
+            <div className="text-muted-foreground">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.missingSignaturesIncorrectCallerCodesOrMismatched")}</div>
           </div>
         </div>
 
         {error ? (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/25 bg-destructive/[0.05] p-3 text-sm text-destructive">
             <span>{error}</span>
-            <Button variant="outline" size="sm" onClick={() => void load()}>重试</Button>
+            <Button variant="outline" size="sm" onClick={() => void load()}>{uiI18n.t("uiExtra.channelMonitor.retry")}</Button>
           </div>
         ) : null}
 
         {loading ? (
           <div className="flex min-h-28 items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />正在读取审计身份绑定…
-          </div>
+            <Loader2 className="size-4 animate-spin" />{uiI18n.t("uiExtra.promptFilterNewAPIBindings.loadingAuditIdentityBindings")}</div>
         ) : bindings.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-7 text-center">
-            <div className="text-sm font-medium">还没有按 Key 配置的审计身份</div>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              新建后会自动生成 256 位绑定密钥，并且只展示一次。
-            </p>
+            <div className="text-sm font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.noAuditIdentitiesConfiguredForIndividualKeys")}</div>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.creatingABindingGeneratesA256Bit")}</p>
             <Button className="mt-4" size="sm" onClick={openCreate} disabled={availableAPIKeys.length === 0}>
-              <Plus className="size-4" />新增第一个绑定
-            </Button>
-            {availableAPIKeys.length === 0 ? <p className="mt-2 text-xs text-amber-600">没有可绑定的 API Key，请先新建独立 Key。</p> : null}
+              <Plus className="size-4" />{uiI18n.t("uiExtra.promptFilterNewAPIBindings.createTheFirstBinding")}</Button>
+            {availableAPIKeys.length === 0 ? <p className="mt-2 text-xs text-amber-600">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.noAPIKeysAvailableToBindCreate")}</p> : null}
           </div>
         ) : (
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full min-w-[860px] text-sm">
                 <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
                   <tr>
-                    <th className="px-3 py-2.5 font-medium">调用方</th>
+                    <th className="px-3 py-2.5 font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.caller")}</th>
                     <th className="px-3 py-2.5 font-medium">Codex2API Key</th>
-                    <th className="px-3 py-2.5 font-medium">状态</th>
-                    <th className="px-3 py-2.5 font-medium">绑定密钥</th>
-                    <th className="px-3 py-2.5 font-medium">更新时间</th>
-                    <th className="px-3 py-2.5 text-right font-medium">操作</th>
+                    <th className="px-3 py-2.5 font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.status")}</th>
+                    <th className="px-3 py-2.5 font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.bindingSecret")}</th>
+                    <th className="px-3 py-2.5 font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.updated")}</th>
+                    <th className="px-3 py-2.5 text-right font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -461,24 +443,23 @@ export default function PromptFilterNewAPIBindings() {
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex flex-wrap gap-1.5">
-                            <Badge variant={binding.enabled ? 'default' : 'outline'}>{binding.enabled ? '已启用' : '已关闭'}</Badge>
+                            <Badge variant={binding.enabled ? 'default' : 'outline'}>{binding.enabled ? uiI18n.t("uiExtra.promptFilterNewAPIBindings.enabled") : uiI18n.t("uiExtra.promptFilterNewAPIBindings.disabled")}</Badge>
                             <Badge variant={binding.require_signed_identity ? 'default' : 'outline'}>
-                              {binding.require_signed_identity ? '强制签名' : '未强制签名'}
+                              {binding.require_signed_identity ? uiI18n.t("uiExtra.promptFilterNewAPIBindings.signatureRequired") : uiI18n.t("uiExtra.promptFilterNewAPIBindings.signatureOptional")}
                             </Badge>
                             <Badge variant={binding.prompt_filter_scope === 'off' ? 'destructive' : 'outline'}>
                               {binding.prompt_filter_scope === 'local_only'
-                                ? '仅本地检测'
+                                ? uiI18n.t("uiExtra.promptFilterNewAPIBindings.localChecksOnly")
                                 : binding.prompt_filter_scope === 'off'
-                                  ? '跳过 Prompt 检查'
-                                  : '继承全局审核'}
+                                  ? uiI18n.t("uiExtra.promptFilterNewAPIBindings.skipPromptChecks")
+                                  : uiI18n.t("uiExtra.promptFilterNewAPIBindings.inheritGlobalReview")}
                             </Badge>
                           </div>
                         </td>
                         <td className="px-3 py-3">
-                          <div className="font-mono text-xs">{binding.secret_configured ? binding.secret_masked : '未配置'}</div>
+                          <div className="font-mono text-xs">{binding.secret_configured ? binding.secret_masked : uiI18n.t("uiExtra.promptFilterNewAPIBindings.notConfigured")}</div>
                           {binding.previous_secret_active ? (
-                            <div className="mt-1 text-xs text-amber-600">
-                              旧密钥宽限至 {formatBeijingTime(binding.previous_secret_expires_at)}
+                            <div className="mt-1 text-xs text-amber-600">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.oldSecretValidUntil")}{formatBeijingTime(binding.previous_secret_expires_at)}
                             </div>
                           ) : null}
                         </td>
@@ -486,12 +467,10 @@ export default function PromptFilterNewAPIBindings() {
                         <td className="px-3 py-3">
                           <div className="flex justify-end gap-1.5">
                             <Button variant="outline" size="sm" onClick={() => openEdit(binding)}>
-                              <Pencil className="size-3.5" />编辑
-                            </Button>
+                              <Pencil className="size-3.5" />{uiI18n.t("uiExtra.intelligenceCheck.edit")}</Button>
                             <Button variant="outline" size="sm" onClick={() => { setGraceSeconds('300'); setRotating(binding) }}>
-                              <RefreshCw className="size-3.5" />轮换
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive" aria-label="删除绑定" onClick={() => void deleteBinding(binding)}>
+                              <RefreshCw className="size-3.5" />{uiI18n.t("uiExtra.promptFilterNewAPIBindings.rotate")}</Button>
+                            <Button variant="ghost" size="icon" className="text-destructive" aria-label={uiI18n.t("uiExtra.promptFilterNewAPIBindings.deleteBinding")} onClick={() => void deleteBinding(binding)}>
                               <Trash2 className="size-4" />
                             </Button>
                           </div>
@@ -508,16 +487,14 @@ export default function PromptFilterNewAPIBindings() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>新增 Key 审计身份绑定</DialogTitle>
-            <DialogDescription>选择请求实际使用的 Codex2API Key。保存后系统自动生成绑定密钥，并只展示一次。</DialogDescription>
+            <DialogTitle>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.addAKeyAuditIdentityBinding")}</DialogTitle>
+            <DialogDescription>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.selectTheCodex2APIKeyActuallyUsedFor")}</DialogDescription>
           </DialogHeader>
           <BindingFormFields form={createForm} setForm={setCreateForm} apiKeys={availableAPIKeys} editing={false} />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.cancel")}</Button>
             <Button onClick={() => void createBinding()} disabled={saving || !createForm.apiKeyId || !createForm.platformCode.trim()}>
-              {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-              创建并生成密钥
-            </Button>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}{uiI18n.t("uiExtra.promptFilterNewAPIBindings.createAndGenerateSecret")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -525,16 +502,14 @@ export default function PromptFilterNewAPIBindings() {
       <Dialog open={Boolean(editing)} onOpenChange={(open) => { if (!open && !saving) setEditing(null) }}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>编辑审计身份绑定</DialogTitle>
-            <DialogDescription>管理调用方身份及该 Key 的检查范围；全局拦截阈值和审核档位仍由统一 GuardPipeline 管理。</DialogDescription>
+            <DialogTitle>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.editAuditIdentityBinding")}</DialogTitle>
+            <DialogDescription>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.manageTheCallerIdentityAndThisKey")}</DialogDescription>
           </DialogHeader>
           <BindingFormFields form={editForm} setForm={setEditForm} apiKeys={apiKeys.filter((key) => key.id === editing?.api_key_id)} editing />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.cancel")}</Button>
             <Button onClick={() => void updateBinding()} disabled={saving || !editForm.platformCode.trim()}>
-              {saving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-              保存修改
-            </Button>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}{uiI18n.t("uiExtra.promptFilterNewAPIBindings.saveChanges")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -542,26 +517,22 @@ export default function PromptFilterNewAPIBindings() {
       <Dialog open={Boolean(rotating)} onOpenChange={(open) => { if (!open && !saving) setRotating(null) }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>轮换“{rotating?.platform_name || rotating?.platform_code}”绑定密钥</DialogTitle>
-            <DialogDescription>系统会生成新密钥。宽限期内新旧密钥都可验证，便于无中断更新对应的 NewAPI 配置。</DialogDescription>
+            <DialogTitle>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.rotateTheSecretFor")}{rotating?.platform_name || rotating?.platform_code}{uiI18n.t("uiExtra.promptFilterNewAPIBindings.label")}</DialogTitle>
+            <DialogDescription>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.aNewSecretWillBeGeneratedBoth")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <label className="space-y-1.5">
-              <span className="text-sm font-medium">旧密钥宽限秒数</span>
+              <span className="text-sm font-medium">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.oldSecretGracePeriodSeconds")}</span>
               <Input type="number" min={60} max={86400} step={1} value={graceSeconds} onChange={(event) => setGraceSeconds(event.target.value)} />
-              <span className="block text-xs leading-5 text-muted-foreground">建议 300 秒，最少 60 秒；即使浏览器在响应返回前断开，旧密钥仍可用于恢复并重新轮换。</span>
+              <span className="block text-xs leading-5 text-muted-foreground">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.recommended300SecondsMinimum60TheOld")}</span>
             </label>
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-6">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
-              轮换成功后，明文新密钥只展示一次。请在宽限期结束前更新对应调用方，其他绑定无需改动。
-            </div>
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />{uiI18n.t("uiExtra.promptFilterNewAPIBindings.theNewSecretIsShownOnlyOnce")}</div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRotating(null)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => setRotating(null)} disabled={saving}>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.cancel")}</Button>
             <Button onClick={() => void rotateSecret()} disabled={saving}>
-              {saving ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              确认轮换
-            </Button>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}{uiI18n.t("uiExtra.promptFilterNewAPIBindings.confirmRotation")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -573,25 +544,23 @@ export default function PromptFilterNewAPIBindings() {
           onPointerDownOutside={(event) => { event.preventDefault(); requestCloseSecretReveal() }}
         >
           <DialogHeader>
-            <DialogTitle>{secretReveal?.platformName} 绑定密钥</DialogTitle>
-            <DialogDescription>密钥已经保存到 Codex2API 数据库，但明文只在本次响应中展示。列表不会再次回显。</DialogDescription>
+            <DialogTitle>{secretReveal?.platformName}{uiI18n.t("uiExtra.promptFilterNewAPIBindings.bindingSecret")}</DialogTitle>
+            <DialogDescription>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.theSecretIsSavedInTheCodex2API")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex gap-2">
               <Input readOnly value={secretReveal?.secret ?? ''} className="font-mono text-xs" />
               <Button variant="outline" onClick={() => void copySecret()}>
                 {secretCopied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                {secretCopied ? '已复制' : '复制密钥'}
+                {secretCopied ? uiI18n.t("uiExtra.promptFilterNewAPIBindings.copied") : uiI18n.t("uiExtra.promptFilterNewAPIBindings.copySecret")}
               </Button>
             </div>
-            <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
-              请把此密钥只配置到“{secretReveal?.platformName}”对应的 NewAPI。关闭后无法重新获取明文，只能再次轮换。
-            </div>
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-6 text-amber-800 dark:text-amber-200">{uiI18n.t("uiExtra.promptFilterNewAPIBindings.configureThisSecretOnlyInTheNewAPI")}{secretReveal?.platformName}{uiI18n.t("uiExtra.promptFilterNewAPIBindings.closingThisWindowRemovesAccessToThe")}</div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={requestCloseSecretReveal}>关闭</Button>
+            <Button variant="outline" onClick={requestCloseSecretReveal}>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.close")}</Button>
             <Button onClick={() => void copySecret()}>
-              <Copy className="size-4" />{secretCopied ? '已复制' : '复制后配置'}
+              <Copy className="size-4" />{secretCopied ? uiI18n.t("uiExtra.promptFilterNewAPIBindings.copied") : uiI18n.t("uiExtra.promptFilterNewAPIBindings.copyAndConfigure")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -600,12 +569,12 @@ export default function PromptFilterNewAPIBindings() {
       <Dialog open={secretCloseConfirmOpen} onOpenChange={setSecretCloseConfirmOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>确认关闭密钥窗口？</DialogTitle>
-            <DialogDescription>关闭后将清除本次明文展示，列表不会再次显示。以后只能通过轮换获得新密钥。</DialogDescription>
+            <DialogTitle>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.closeTheSecretWindow")}</DialogTitle>
+            <DialogDescription>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.closingClearsThePlaintextDisplayTheList")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSecretCloseConfirmOpen(false)}>返回复制</Button>
-            <Button variant="destructive" onClick={confirmCloseSecretReveal}>确认关闭</Button>
+            <Button variant="outline" onClick={() => setSecretCloseConfirmOpen(false)}>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.backToCopy")}</Button>
+            <Button variant="destructive" onClick={confirmCloseSecretReveal}>{uiI18n.t("uiExtra.promptFilterNewAPIBindings.confirmClose")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

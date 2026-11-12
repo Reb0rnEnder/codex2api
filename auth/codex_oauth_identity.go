@@ -11,16 +11,18 @@ var CodexOAuthIdentityHeaders func(*Account) (http.Header, error)
 type codexOAuthIdentityKey struct{}
 
 type codexOAuthIdentity struct {
-	headers http.Header
-	reason  string
+	headers     http.Header
+	reason      string
+	basisPoints bool
 }
 
 func withCodexOAuthIdentity(ctx context.Context, account *Account, force bool) (context.Context, error) {
 	identity := codexOAuthIdentity{reason: "proactive_expiry"}
+	identity.basisPoints = account.IsBasisPoints()
 	if force {
 		identity.reason = "forced"
 	}
-	if CodexOAuthIdentityHeaders != nil {
+	if CodexOAuthIdentityHeaders != nil && !identity.basisPoints {
 		headers, err := CodexOAuthIdentityHeaders(account)
 		if err != nil {
 			return nil, err

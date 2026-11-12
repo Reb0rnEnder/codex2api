@@ -1,3 +1,4 @@
+import { numberDisplayLocale } from "./numberLocale.ts";
 import type { ChannelMonitorBillingData } from '../types'
 
 export function resolveChannelMonitorRate(
@@ -24,7 +25,7 @@ export function validChannelMonitorMultiplier(value: unknown): number | null {
 }
 
 export function formatChannelMonitorMultiplier(value: number): string {
-  return Number(value.toPrecision(8)).toLocaleString(undefined, { maximumFractionDigits: 6 })
+  return Number(value.toPrecision(8)).toLocaleString(numberDisplayLocale(), { maximumFractionDigits: 6 })
 }
 
 function parseMinute(value?: string): number | null {

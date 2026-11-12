@@ -1,3 +1,4 @@
+import { numberDisplayLocale } from "./numberLocale.ts";
 // Codex/Responses 测连诊断的类型与纯展示逻辑。与 Claude 的 claudeConnectionTest.ts
 // 平行但独立:字段语义按 Responses API 与 x-codex-* 用量头定义。
 
@@ -100,5 +101,5 @@ export function isCodexVersionGatedError(...texts: Array<string | null | undefin
 }
 
 export function formatCodexTestMS(value?: number): string {
-  return typeof value === "number" && Number.isFinite(value) ? `${value.toLocaleString()} ms` : "—";
+  return typeof value === "number" && Number.isFinite(value) ? `${value.toLocaleString(numberDisplayLocale())} ms` : "—";
 }

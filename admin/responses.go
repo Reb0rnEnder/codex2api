@@ -383,7 +383,11 @@ type runtimeAdminAuthResponse struct {
 }
 
 func writeError(c *gin.Context, statusCode int, message string) {
-	c.JSON(statusCode, errorResponse{Error: message})
+	language := ""
+	if c.Request != nil {
+		language = c.GetHeader("Accept-Language")
+	}
+	c.JSON(statusCode, errorResponse{Error: localizeAdminError(language, message)})
 }
 
 func writeMessage(c *gin.Context, statusCode int, message string) {

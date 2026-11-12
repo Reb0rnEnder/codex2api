@@ -1,4 +1,5 @@
 import { intelligenceQuery, type IntelligenceSettings, type IntelligenceAccount, type IntelligenceRun, type IntelligenceBar, type IntelligencePage } from './lib/intelligenceCheck.ts'
+import i18next from 'i18next'
 import { qualityTestFilterQuery, type QualityTestJob, type QualityTestJobsFilter, type QualityTestJobsResponse, type QualityTestPrompt } from './lib/qualityTest.ts'
 import type {
   AccountEventTrendPoint,
@@ -221,6 +222,7 @@ function extractAdminErrorMessage(body: string, status: number): string {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers)
+  if (!headers.has('Accept-Language')) headers.set('Accept-Language', i18next.resolvedLanguage || i18next.language || 'en')
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   if (options.body !== undefined && options.body !== null && !isFormData && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
@@ -687,6 +689,18 @@ export const api = {
     request<AgentIdentityBatchImportResponse>('/accounts/codex/agent-identity/import', { method: 'POST', body: JSON.stringify(data) }),
   addOpenAIResponsesAccount: (data: AddOpenAIResponsesAccountRequest) =>
     request<CreateAccountResponse>('/accounts/openai-responses', { method: 'POST', body: JSON.stringify(data) }),
+  startBasisPointsOAuth: (data: { proxy_url?: string }) =>
+    request<{ session_id: string; auth_url: string }>('/accounts/basispoints/oauth/start', { method: 'POST', body: JSON.stringify(data) }),
+  startZcodeLogin: (data: { name?: string; proxy_url?: string }) =>
+    request<{ session_id: string; auth_url: string }>('/accounts/zcode/login/start', { method: 'POST', body: JSON.stringify(data) }),
+  pollZcodeLogin: (data: { session_id: string }) =>
+    request<{ status: 'pending' | 'ready' | 'failed' | 'expired'; id?: number }>('/accounts/zcode/login/poll', { method: 'POST', body: JSON.stringify(data) }),
+  addZcodeAccount: (data: { token: string; name?: string; proxy_url?: string }) =>
+    request<CreateAccountResponse>('/accounts/zcode', { method: 'POST', body: JSON.stringify(data) }),
+  claimZcodePlans: (id: number, data: { captcha_param?: string; captcha_region?: string }) =>
+    request<{ plans: { plan_id: string; name: string; status: 'claimed' | 'already_claimed' | 'captcha_required' | 'failed'; code?: number; http_status?: number }[]; quota_error?: string }>(`/accounts/${id}/zcode/claim`, { method: 'POST', body: JSON.stringify(data), timeoutMs: 100_000 }),
+  completeBasisPointsOAuth: (data: { session_id: string; callback_url: string; name?: string }) =>
+    request<CreateAccountResponse>('/accounts/basispoints/oauth/complete', { method: 'POST', body: JSON.stringify(data) }),
   fetchOpenAIResponsesModels: (data: FetchOpenAIResponsesModelsRequest) =>
     request<FetchOpenAIResponsesModelsResponse>('/accounts/openai-responses/models', { method: 'POST', body: JSON.stringify(data) }),
   updateOpenAIResponsesAccount: (id: number, data: UpdateOpenAIResponsesAccountRequest) =>
