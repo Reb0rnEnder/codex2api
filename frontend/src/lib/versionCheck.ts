@@ -54,6 +54,8 @@ function compareVersions(a: string, b: string): number {
     if (parsedA[i] < parsedB[i]) return -1
     if (parsedA[i] > parsedB[i]) return 1
   }
+  const forkRevision = (v: string) => Number(/-fork\.(\d+)$/.exec(normalizeVersion(v))?.[1] || 0)
+  if (forkRevision(a) !== forkRevision(b)) return forkRevision(a) < forkRevision(b) ? -1 : 1
   return 0
 }
 

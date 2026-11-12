@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	systemUpdateRepo             = "james-6-23/codex2api"
+	systemUpdateRepo             = "Reb0rnEnder/codex2api"
 	systemUpdateUserAgent        = "Codex2API-Updater"
 	systemUpdateMaxDownloadBytes = 200 * 1024 * 1024
 	systemUpdateRestartDelay     = 900 * time.Millisecond
@@ -757,7 +757,25 @@ func compareSystemVersions(a, b string) int {
 			return 1
 		}
 	}
+	if af, bf := systemForkRevision(a), systemForkRevision(b); af != bf {
+		if af < bf {
+			return -1
+		}
+		return 1
+	}
 	return 0
+}
+
+func systemForkRevision(v string) int {
+	_, revision, ok := strings.Cut(normalizeSystemVersion(v), "-fork.")
+	if !ok {
+		return 0
+	}
+	n, err := strconv.Atoi(revision)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
 }
 
 func parseSystemVersion(v string) ([3]int, bool) {

@@ -90,7 +90,7 @@ export default function Layout({ children }: PropsWithChildren) {
   const versionButtonRef = useRef<HTMLButtonElement | null>(null)
   const [versionPopoverPos, setVersionPopoverPos] = useState<{ top: number; left: number } | null>(null)
   const releaseURL = updateInfo?.release_url || (latestVersion
-    ? `https://github.com/james-6-23/codex2api/releases/tag/${encodeURIComponent(latestVersion)}`
+    ? `https://github.com/Reb0rnEnder/codex2api/releases/tag/${encodeURIComponent(latestVersion)}`
     : undefined)
   const canApplyUpdate = hasUpdate && updateInfo?.has_update === true && updateInfo.supported !== false
   const updateUnavailableReason = updateInfo?.unsupported_reason

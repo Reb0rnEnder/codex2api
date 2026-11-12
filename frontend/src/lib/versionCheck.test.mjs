@@ -2,6 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { hasRemoteUpdate, normalizeVersion, resolveBuildVersions } from './versionCheck.ts'
 
+test('fork release revisions compare numerically within the same upstream version', () => {
+  assert.equal(hasRemoteUpdate('v3.1.5-fork.2', 'v3.1.5-fork.10'), true)
+  assert.equal(hasRemoteUpdate('v3.1.5-fork.10', 'v3.1.5-fork.2'), false)
+  assert.equal(hasRemoteUpdate('v3.1.5-fork.10', 'v3.1.6-fork.1'), true)
+})
+
 test('an old frontend uses the running release for cached latest-version comparison', () => {
   const current = resolveBuildVersions('v3.0.1', '3.0.5')
   assert.deepEqual(current, {

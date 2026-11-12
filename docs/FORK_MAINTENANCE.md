@@ -8,4 +8,6 @@ If a merge conflicts or validation fails, the workflow fails before pushing. For
 
 Release automation updates the public repository and produces release artifacts; it does not update an existing local checkout or restart deployed containers. To update this checkout, run `git pull --ff-only origin main`, then rebuild your local deployment. For prebuilt containers use the fork's `ghcr.io/reb0rnender/codex2api` image instead of upstream's image.
 
+The built-in binary updater and deployment defaults use this fork. Fork revision numbers are compared numerically, so another build of the same upstream version is offered as an update too. Successful automated Docker builds update the fork's `latest` tag.
+
 Private HAR captures, inspection downloads, local account fixtures, `.env` files, runtime databases, and dependency/build directories are excluded from the public commit. The Docker build also excludes authentication captures.

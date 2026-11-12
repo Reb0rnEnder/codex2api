@@ -61,6 +61,9 @@ func TestCompareSystemVersions(t *testing.T) {
 		{a: "2.10.0", b: "2.9.9", want: 1},
 		{a: "2.4.3", b: "v2.4.3", want: 0},
 		{a: "2.4", b: "2.4.1", want: -1},
+		{a: "v3.1.5-fork.2", b: "v3.1.5-fork.10", want: -1},
+		{a: "v3.1.5-fork.10", b: "v3.1.5-fork.2", want: 1},
+		{a: "v3.1.5-fork.10", b: "v3.1.6-fork.1", want: -1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.a+"_"+tt.b, func(t *testing.T) {

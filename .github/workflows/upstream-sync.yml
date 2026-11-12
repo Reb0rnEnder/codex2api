@@ -80,6 +80,6 @@ jobs:
           FORK_TAG: ${{ steps.publish.outputs.tag }}
         run: |
           gh workflow run release.yml --ref "$FORK_TAG"
-          gh workflow run docker-image.yml --ref "$FORK_TAG" -f "build_version=$FORK_TAG"
+          gh workflow run docker-image.yml --ref "$FORK_TAG" -f "build_version=$FORK_TAG" -f publish_latest=true
           echo "### Published $FORK_TAG" >> "$GITHUB_STEP_SUMMARY"
           echo 'Merged upstream release, passed tests, and dispatched binary and Docker builds.' >> "$GITHUB_STEP_SUMMARY"
