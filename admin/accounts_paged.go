@@ -751,7 +751,7 @@ func (h *Handler) buildAccountListSnapshotItem(row *database.AccountRow, request
 		Email: email, EmailDomain: accountEmailDomain(email), Tags: append([]string(nil), row.Tags...),
 		SchedulerPriority: valueOrZero(accountSchedulerPriority(row)), OpenAIResponses: isOpenAIResponses,
 		Antigravity: isAntigravity, AntigravityAuthKind: antigravityAuthKind, Claude: isClaude,
-		ClaudeAuthKind:      claudeAuthKindForRow(row, isClaude),
+		ClaudeAuthKind:      claudeAuthKindForRow(row, isClaude || row.GetCredential("zcode") == "true"),
 		ClaudeUsageProbeAt:  row.GetCredential(auth.ClaudeUsageProbeAtCredentialKey),
 		ClaudeUsageProbeErr: row.GetCredential(auth.ClaudeUsageProbeErrorCredentialKey),
 	}
@@ -1424,7 +1424,7 @@ func accountListOverloadPaused(item *accountListSnapshotItem) bool {
 }
 
 func accountListUnsampled(item *accountListSnapshotItem) bool {
-	if item == nil || item.OpenAIResponses || item.GrokAuthKind != "" || item.Antigravity {
+	if item == nil || item.OpenAIResponses || item.GrokAuthKind != "" || item.Antigravity || (item.Row != nil && (item.Row.GetCredential("basispoints") == "true" || item.Row.GetCredential("zcode") == "true")) {
 		return false
 	}
 	if item.Status == "unauthorized" || item.Status == "error" {

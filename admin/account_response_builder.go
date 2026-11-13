@@ -245,7 +245,7 @@ func (h *Handler) buildAccountResponse(
 		GrokAPI:                      isGrokAccount,
 		AntigravityAPI:               isAntigravityAccount,
 		ClaudeAPI:                    isClaudeAccount,
-		ClaudeAuthKind:               claudeAuthKindForRow(row, isClaudeAccount),
+		ClaudeAuthKind:               claudeAuthKindForRow(row, isClaudeAccount || row.GetCredential("zcode") == "true"),
 		ClaudeBaseURL:                row.GetCredential(auth.ClaudeBaseURLCredentialKey),
 		AntigravityAuthKind:          antigravityAuthKind,
 		AgentIdentity:                isAgentIdentityCredentialRow(row),

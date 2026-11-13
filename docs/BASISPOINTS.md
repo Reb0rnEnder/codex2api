@@ -1,6 +1,6 @@
 # BasisPoints accounts
 
-Open **Accounts > Add account > BasisPoints**, the last sign-in option. Select **Start sign-in**, then **Open ChatGPT sign-in**. This uses the Office extension OAuth route rather than device-code authorization.
+Open **Accounts > Add account > BasisPoints**, the last sign-in option. Select **Generate Auth Link**, then open the generated authorization link. This uses the Office extension OAuth route rather than device-code authorization.
 
 After login, ChatGPT may display "Couldn't sign in, please try again" while leaving a URL with `code` and `state` in the address bar. Copy the entire callback URL and paste it into the dialog. No scripts, bookmarklets, or DevTools are needed. The server validates the origin, path, state, expiry, and single-use session before exchanging the code with its PKCE verifier. If the callback URL does not contain a code, restart sign-in.
 

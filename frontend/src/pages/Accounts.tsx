@@ -1,7 +1,6 @@
 import uiI18n from "../i18n";
 import { useIntelligenceBars } from "../hooks/useIntelligenceBars";
 import { BasisPointsIcon } from "../components/BasisPointsIcon";
-import { BasisPointsAddForm } from "../components/BasisPointsAddForm";
 import AccountIntelligenceBar, { AccountIntelligenceActions } from "../components/AccountIntelligenceBar";
 import type { IntelligenceBar } from "../lib/intelligenceCheck";
 import type { ChangeEvent, DragEvent, ReactNode } from "react";
@@ -3996,7 +3995,7 @@ export default function Accounts() {
   };
 
   const startOAuthSession = async () => {
-    const result = await api.generateOAuthURL({ proxy_url: oauthProxyUrl });
+    const result = await (addMethod === "basispoints" ? api.startBasisPointsOAuth({ proxy_url: oauthProxyUrl }) : api.generateOAuthURL({ proxy_url: oauthProxyUrl }));
     setOauthSession(result);
     setOauthCallbackUrl("");
     setOauthStep("exchange");
@@ -4053,7 +4052,7 @@ export default function Accounts() {
     }
     setOauthCompleting(true);
     try {
-      const result = await api.exchangeOAuthCode({
+      const result = addMethod === "basispoints" ? await api.completeBasisPointsOAuth({session_id: oauthSession.session_id, callback_url: oauthCallbackUrl, name: oauthName.trim() || undefined}) : await api.exchangeOAuthCode({
         session_id: oauthSession.session_id,
         code,
         state,
@@ -4061,7 +4060,7 @@ export default function Accounts() {
         proxy_url: oauthProxyUrl.trim() || undefined,
       });
       showToast(
-        result.email
+        "email" in result && result.email
           ? t("accounts.oauthSuccess", { email: result.email })
           : t("accounts.oauthSuccessNoEmail"),
       );
@@ -8076,7 +8075,7 @@ export default function Accounts() {
                   >
                     {submitting ? t("accounts.adding") : t("accounts.submit")}
                   </Button>
-                ) : addMethod === "basispoints" ? null : addMethod === "openai" ? (
+                ) : addMethod === "openai" ? (
                   <Button
                     onClick={() => void handleAddOpenAIResponses()}
                     disabled={
@@ -8202,16 +8201,14 @@ export default function Accounts() {
                 <Fingerprint className="size-3.5" />
                 {t("accounts.addMethodAgentIdentity")}
               </button>
-              <button type="button" onClick={() => setAddMethod("basispoints")}
+              <button type="button" onClick={() => { setAddMethod("basispoints"); setOauthStep("generate"); setOauthSession(null); setOauthCallbackUrl(""); }}
                 className={`min-w-0 flex-1 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-semibold whitespace-nowrap transition-all ${addMethod === "basispoints" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 <BasisPointsIcon className="size-3.5" />
                 BasisPoints
               </button>
             </div>
 
-            {addMethod === "basispoints" ? (
-              <BasisPointsAddForm onAdded={() => { setShowAdd(false); showToast(t("accounts.addSuccess")); void reload(); }} />
-            ) : addMethod === "rt" ? (
+            {addMethod === "rt" ? (
               <div className="space-y-4">
                 <div>
                   <label className="block mb-2 text-sm font-semibold text-muted-foreground">
@@ -8708,13 +8705,14 @@ export default function Accounts() {
               </div>
             ) : (
               <div className="space-y-5">
+                {addMethod === "basispoints" && <p role="note" className="rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">{t("basispoints.officeWarning")}</p>}
                 {oauthStep === "generate" ? (
                   <>
                     <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                       <p className="font-semibold text-foreground mb-1">
                         {t("accounts.oauthStep1Title")}
                       </p>
-                      <p>{t("accounts.oauthStep1Desc")}</p>
+                      <p>{t(addMethod === "basispoints" ? "basispoints.intro" : "accounts.oauthStep1Desc")}</p>
                     </div>
                     <div>
                       <label className="block mb-2 text-sm font-semibold text-muted-foreground">
@@ -8741,7 +8739,7 @@ export default function Accounts() {
                       <p className="font-semibold text-foreground mb-1">
                         {t("accounts.oauthStep2Title")}
                       </p>
-                      <p>{t("accounts.oauthStep2Desc")}</p>
+                      <p>{t(addMethod === "basispoints" ? "basispoints.callbackHint" : "accounts.oauthStep2Desc")}</p>
                     </div>
                     {oauthSession && (
                       <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
@@ -8778,7 +8776,8 @@ export default function Accounts() {
                         {t("accounts.oauthCallbackUrlLabel")}
                       </label>
                       <Input
-                        placeholder={t("accounts.oauthCallbackUrlPlaceholder")}
+                        placeholder={addMethod === "basispoints" ? "https://bps.openai.com/.../auth/callback?code=...&state=..." : t("accounts.oauthCallbackUrlPlaceholder")}
+                        aria-label={t("accounts.oauthCallbackUrlLabel")}
                         value={oauthCallbackUrl}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
                           setOauthCallbackUrl(e.target.value)

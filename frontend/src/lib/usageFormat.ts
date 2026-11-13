@@ -72,6 +72,8 @@ export function needsUsageReload(account: {
 
 type AccountStatusSource = {
   status?: string | null
+  basispoints?: boolean
+  zcode?: boolean
   openai_responses_api?: boolean
   grok_api?: boolean
   antigravity_api?: boolean
@@ -95,7 +97,7 @@ export function isUnsampledQuotaAccount(account: AccountStatusSource): boolean {
   if (
     status === 'unauthorized' ||
     status === 'error' ||
-    account.openai_responses_api ||
+    account.basispoints || account.zcode || account.openai_responses_api ||
     account.grok_api ||
     // Antigravity 的额度来自控制面配额快照,没有 5h/7d 采样窗口(与后端口径一致)。
     account.antigravity_api
@@ -147,13 +149,15 @@ export function supportsOfficialUsage(account: {
   access_token_type?: string | null
   chatgpt_account_id?: string | null
   effective_workspace_id?: string | null
+  basispoints?: boolean
+  zcode?: boolean
   openai_responses_api?: boolean
   grok_api?: boolean
   claude_api?: boolean
   antigravity_api?: boolean
 }): boolean {
   // wham 只属于 ChatGPT 渠道：中转 / Grok / Claude / Antigravity（Google）账号没有官方统计。
-  if (account.openai_responses_api || account.grok_api || account.claude_api || account.antigravity_api) return false
+  if (account.basispoints || account.zcode || account.openai_responses_api || account.grok_api || account.claude_api || account.antigravity_api) return false
   const isAT = (account.access_token_type || '').trim().toLowerCase() === 'codex_at'
   if (!isAT) return true
   // codex_at 账号如果具备工作区 ID（whoami 补全或自定义头覆盖），则支持官方用量统计。
@@ -179,6 +183,8 @@ export function needsOfficialCostReload(account: {
   status?: string | null
   created_at?: string | null
   access_token_type?: string | null
+  basispoints?: boolean
+  zcode?: boolean
   openai_responses_api?: boolean
   grok_api?: boolean
   claude_api?: boolean

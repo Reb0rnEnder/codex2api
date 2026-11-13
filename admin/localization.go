@@ -11,6 +11,16 @@ func localizeAdminError(language, message string) string {
 	if translated, ok := adminEnglishErrors[message]; ok {
 		return translated
 	}
+	for _, pair := range [][2]string{
+		{"该账号不支持测试模型: ", "This account does not support test model: "},
+		{"不支持的测试模型: ", "Unsupported test model: "},
+		{"该 Responses API 账号没有可用于测试的文本模型", "This account has no text models available for a connection test"},
+		{"读取上游流失败: ", "Unable to read upstream stream: "},
+	} {
+		if strings.HasPrefix(message, pair[0]) {
+			return pair[1] + strings.TrimPrefix(message, pair[0])
+		}
+	}
 	for _, pair := range [][2]string{{"查询账号失败: ", "Unable to query accounts: "}, {"请求体解析失败: ", "Unable to parse request body: "}, {"模型名称无效: ", "Invalid model name: "}, {"保存失败: ", "Unable to save: "}, {"读取响应缓存设置失败：", "Unable to read response-cache settings: "}} {
 		if strings.HasPrefix(message, pair[0]) {
 			return pair[1] + strings.TrimPrefix(message, pair[0])

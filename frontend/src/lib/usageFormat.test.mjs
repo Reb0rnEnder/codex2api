@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+test("BPS and Zcode do not require Codex quota sampling", () => {
+  for (const marker of ['basispoints','zcode']) {
+    const account = {status:'active',[marker]:true};
+    assert.equal(isUnsampledQuotaAccount(account),false);
+    assert.equal(getAccountStatusBadgeStatus(account),'active');
+    assert.equal(supportsOfficialUsage(account),false);
+  }
+});
+
 import {
   getAccountStatusBadgeStatus,
   isOfficialCostHiddenAccount,

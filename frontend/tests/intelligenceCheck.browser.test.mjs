@@ -28,7 +28,7 @@ before(async () => {
    if (id !== '\0intelligence-harness') return
    return `import React from 'react'; import {createRoot} from 'react-dom/client'; import {MemoryRouter} from 'react-router-dom';
    import IntelligenceCheck from ${JSON.stringify(path.join(root, 'src/pages/IntelligenceCheck.tsx'))};
-   import {BasisPointsAddForm} from ${JSON.stringify(path.join(root, 'src/components/BasisPointsAddForm.tsx'))};
+   import TestConnectionModal from ${JSON.stringify(path.join(root, "src/components/TestConnectionModal.tsx"))};
    import ZcodeAccounts from ${JSON.stringify(path.join(root, 'src/pages/ZcodeAccounts.tsx'))};
    import ClaudeAccounts from ${JSON.stringify(path.join(root, 'src/pages/ClaudeAccounts.tsx'))};
    import Accounts from ${JSON.stringify(path.join(root, 'src/pages/Accounts.tsx'))};
@@ -40,7 +40,7 @@ before(async () => {
    import {ToastProvider} from ${JSON.stringify(path.join(root, 'src/components/ToastProvider.tsx'))};
    import ${JSON.stringify(path.join(root, 'src/i18n.ts'))}; import ${JSON.stringify(path.join(root, 'src/index.css'))};
    createRoot(document.getElementById('root')).render(React.createElement(MemoryRouter, {initialEntries:[window.__initialPath||'/']}, React.createElement(ToastProvider,null,
-   React.createElement('main',{style:{padding:'24px',maxWidth:'1400px',margin:'0 auto'}}, window.__showBar ? React.createElement(BarHarness) : null, window.__basispointsForm ? React.createElement(BasisPointsAddForm,{onAdded:()=>{window.__added=true}}) : window.__zcodePage ? React.createElement(ZcodeAccounts) : window.__accountsPage ? React.createElement(VisibleChannelsProvider,null,React.createElement(window.__claudePage ? ClaudeAccounts : Accounts)) : React.createElement(IntelligenceCheck)))));`
+   React.createElement('main',{style:{padding:'24px',maxWidth:'1400px',margin:'0 auto'}}, window.__showBar ? React.createElement(BarHarness) : null, window.__bpsTest ? React.createElement(TestConnectionModal,{account:{id:1,basispoints:true,status:"active",models:["bps-test-model"]},onClose:()=>{},onSettled:()=>{}}) : window.__basispointsForm ? React.createElement(VisibleChannelsProvider,null,React.createElement(Accounts)) : window.__zcodePage ? React.createElement(ZcodeAccounts) : window.__accountsPage ? React.createElement(VisibleChannelsProvider,null,React.createElement(window.__claudePage ? ClaudeAccounts : Accounts)) : React.createElement(IntelligenceCheck)))));`
   },
  }], resolve: { alias: { '@': path.join(root, 'src') } }, define: { 'process.env.NODE_ENV': '"production"' }, build: { write: false, minify: false, rollupOptions: { input: 'virtual:intelligence-harness' }, lib: { entry: 'virtual:intelligence-harness', formats: ['iife'], name: 'IntelligenceHarness' } } })
  const bundle = Array.isArray(result) ? result[0] : result
@@ -56,7 +56,7 @@ async function fixture(t, options = {}) {
  await page.route('http://intelligence.test/**', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div id="root"></div></body></html>' }))
  await page.goto('http://intelligence.test/')
  await page.evaluate(({ settings, accounts, run, options }) => {
-  localStorage.setItem("lang", options.language || "zh"); window.__basispointsForm=options.basispointsForm; window.__zcodePage=options.zcodePage; localStorage.setItem("codex2api:accounts:page-mode", "pool"); window.__claudePage = options.claudePage; window.__accountsPage = options.accountsPage; window.__initialPath = options.initialPath; window.__calls = []; window.__config = settings; window.__showBar = options.bar
+  localStorage.setItem("lang", options.language || "zh"); window.__bpsTest=options.bpsTest; window.__basispointsForm=options.basispointsForm; window.__zcodePage=options.zcodePage; localStorage.setItem("codex2api:accounts:page-mode", "pool"); window.__claudePage = options.claudePage; window.__accountsPage = options.accountsPage; window.__initialPath = options.initialPath; window.__calls = []; window.__config = settings; window.__showBar = options.bar
   window.__bar = { enabled: options.detectionEnabled ?? true, action: 'none', records: ['normal', 'degraded', 'error', 'interrupted'].map((status, i) => ({ id: 10 + i, status, question_name: '糖果配对', duration_ms: 1200, completed_at: run.completed_at })) }
   if (options.dark) document.documentElement.classList.add('dark')
   window.__conflictActive = !!options.conflict
@@ -66,17 +66,17 @@ async function fixture(t, options = {}) {
    const account = { id: 1, name: '本地 Codex 测试账号', email: 'fixture@example.test', account_type: 'oauth', status: 'active', enabled: true, health_tier: 'healthy', created_at: '2026-10-15T12:00:00Z', group_ids: [], models: ['gpt-6-astra'], detail_loaded: true, usage_percent_7d: 12, active_requests: 2, dynamic_concurrency_limit: 200, ...options.accountOverrides }
    if (name === 'startBasisPointsOAuth') return {session_id:'bps-test',auth_url:'https://bps.openai.com/auth/start?state=synthetic'}
    if (name === 'completeBasisPointsOAuth') return {id:2}
-   if (name === 'getAccounts') return {accounts:[{...account,zcode:true,name:'Zcode fixture',models:['GLM-5.3']}]}
+   if (name === 'getAccounts') return {accounts:[{...account,zcode:true,email:'',name:'Zcode fixture',models:['GLM-5.3']}]}
    if (name === 'claimZcodePlans') return {plans:[{plan_id:'start',name:'Starter plan',status:'claimed'}]}
    if (name === 'getVisibleChannels') return { channels: ['codex', 'claude'] }
-   if (name === 'getAccountsPage') return { accounts: [account], total: 1, page: 1, page_size: 20, facets: { tags: [], email_domains: [] }, summary: { total: 1 } }
+   if (name === 'getAccountsPage') return { accounts: [options.zcodePage ? {...account,zcode:true,email:'',name:'Zcode fixture',models:['GLM-5.3']} : account], total: 1, page: 1, page_size: 20, facets: { tags: [], email_domains: [] }, summary: { total: 1 } }
    if (name === 'getAccount') return account
    if (name === 'getAccountHealthBars') return { buckets: {} }
    if (name === 'getIntelligenceBars') return { bars: { '1': window.__bar } }
    if (name === 'getAccountPageStats') return { stats: {} }
    if (name === 'getAccountLiveState') return { accounts: {} }
    if (name === 'getAPIKeys') return { keys: [] }
-   if (name === 'getSettings') return {}
+   if (name === 'getSettings') return {test_model:'gpt-6-astra',test_content:'hi'}
    if (name === 'getProxies') return { proxies: [] }
    if (name === 'getChannelMonitorBillingRates') return { rates: [] }
    if (name === 'getIntelligenceSettings') return window.__config
@@ -95,7 +95,7 @@ async function fixture(t, options = {}) {
   }
  }, { settings, accounts, run, options })
  await page.addStyleTag({ content: css }); await page.addScriptTag({ content: script })
- if (!options.accountsPage && !options.basispointsForm && !options.zcodePage) await page.getByRole('heading', { name: '降智检测', exact: true, includeHidden: true }).waitFor({ state: 'attached' })
+ if (!options.accountsPage && !options.basispointsForm && !options.zcodePage && !options.bpsTest) await page.getByRole('heading', { name: '降智检测', exact: true, includeHidden: true }).waitFor({ state: 'attached' })
  return page
 }
 test('configuration and questions share one page and preserve their save flow', async t => {
@@ -371,26 +371,38 @@ test('adding a question works on insecure HTTP origins without crypto.randomUUID
 
 test('BasisPoints callback login needs no script controls and shows Office context warning', async t => {
  const page=await fixture(t,{basispointsForm:true,language:'en'})
+ await page.getByRole('button',{name:'Add Account',exact:true}).click()
+ await page.getByRole('button',{name:'BasisPoints',exact:true}).click()
  assert.match(await page.getByRole('note').innerText(), /Office/)
  assert.equal(await page.getByRole('button',{name:/Copy console|Copy bookmark/}).count(),0)
- await page.getByRole('button',{name:'Start sign-in',exact:true}).click()
- await page.getByRole('link',{name:'Open ChatGPT sign-in',exact:true}).waitFor()
+ await page.getByRole('button',{name:'Generate Auth Link',exact:true}).click()
+ await page.getByRole('link',{name:/https:\/\/bps.openai.com/}).waitFor()
+ await page.screenshot({path:path.join(artifactDir,'basispoints-shared-auth.png'),fullPage:true})
  const callback='https://bps.openai.com/basispoints/extension/test/auth/callback?code=synthetic&state=synthetic'
  await page.getByLabel('Callback URL',{exact:true}).fill(callback)
- await page.getByRole('button',{name:'Add BasisPoints account',exact:true}).click()
- await page.waitForFunction(()=>window.__added===true)
+ await page.getByRole('button',{name:'Complete Authorization & Add Account',exact:true}).click()
+ await page.waitForFunction(()=>window.__calls.some(c=>c.name==='completeBasisPointsOAuth'))
  assert.equal(await page.evaluate(()=>window.__calls.find(c=>c.name==='completeBasisPointsOAuth').args[0].callback_url),callback)
 })
 
 test('Zcode uses its own account list and claims offered plans from its provider page', async t => {
  const page=await fixture(t,{zcodePage:true,language:'en'})
- await page.getByRole('heading',{name:'Zcode fixture',exact:true}).waitFor()
- assert.equal(await page.evaluate(()=>window.__calls.find(c=>c.name==='getAccounts').args[0].channel),'zcode')
+ await page.getByText('Zcode fixture',{exact:true}).first().waitFor()
+ assert.equal(await page.evaluate(()=>window.__calls.find(c=>c.name==='getAccountsPage').args[0].channel),'zcode')
  assert.equal(await page.getByRole('heading',{name:/Claude/}).count(),0)
- await page.getByRole('button',{name:'Claim offered plans',exact:true}).click()
+ await page.screenshot({path:path.join(artifactDir,'zcode-shared-accounts.png'),fullPage:true})
+ await page.locator('[data-account-actions]').getByRole('button').last().click()
+ await page.getByRole('menuitem',{name:'Claim offered plans',exact:true}).click()
  const dialog=page.getByRole('dialog')
  await dialog.getByRole('button',{name:'Claim offered plans',exact:true}).click()
  await dialog.getByText('Starter plan',{exact:true}).waitFor()
  assert.match(await dialog.innerText(),/Claimed/)
  assert.equal(await page.evaluate(()=>window.__calls.find(c=>c.name==='claimZcodePlans').args[0]),1)
+})
+
+
+test('BasisPoints test dialog selects its own model instead of the configured Codex model', async t => {
+ const page=await fixture(t,{bpsTest:true,language:'en'})
+ await page.getByText('bps-test-model',{exact:true}).first().waitFor()
+ assert.equal(await page.evaluate(()=>window.__calls.some(c=>c.name==='getModels')),false)
 })

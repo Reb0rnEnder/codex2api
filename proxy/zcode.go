@@ -146,7 +146,7 @@ func executeZcodeMessages(ctx context.Context, account *auth.Account, body []byt
 	RecordUpstreamUserAgent(ctx, req.Header.Get("User-Agent"))
 	resp, err := doTracedUpstreamRequest(&client, req, account, proxyURL)
 	if err != nil {
-		return nil, ErrUpstream(0, "Zcode request failed", err)
+		return nil, ErrUpstream(0, auth.ZcodeConnectionError("inference", err).Error(), nil)
 	}
 	return resp, nil
 }

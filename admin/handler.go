@@ -1691,6 +1691,9 @@ func isDashboardUnsampledAccount(row *database.AccountRow, acc *auth.Account) bo
 	if row == nil {
 		return false
 	}
+	if row.GetCredential("basispoints") == "true" || row.GetCredential("zcode") == "true" {
+		return false
+	}
 	upstreamType := strings.TrimSpace(row.GetCredential("upstream_type"))
 	if strings.EqualFold(upstreamType, auth.UpstreamGrok) ||
 		strings.EqualFold(upstreamType, auth.UpstreamOpenAIResponses) ||

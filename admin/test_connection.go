@@ -809,6 +809,9 @@ func applyUsageLimitedTestState(store *auth.Store, account *auth.Account, state 
 
 // sendTestEvent 发送 SSE 事件
 func sendTestEvent(c *gin.Context, event testEvent) {
+	if c.Request != nil && event.Error != "" {
+		event.Error = localizeAdminError(c.GetHeader("Accept-Language"), event.Error)
+	}
 	rememberConnectionTestError(c, event)
 	data, err := json.Marshal(event)
 	if err != nil {

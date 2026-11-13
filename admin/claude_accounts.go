@@ -356,7 +356,7 @@ func (h *Handler) RefreshClaudeModels(c *gin.Context) {
 		writeError(c, http.StatusNotFound, "账号不存在")
 		return
 	}
-	if !strings.EqualFold(strings.TrimSpace(row.GetCredential("upstream_type")), auth.UpstreamClaude) {
+	if !strings.EqualFold(strings.TrimSpace(row.GetCredential("upstream_type")), auth.UpstreamClaude) && row.GetCredential("zcode") != "true" {
 		writeError(c, http.StatusBadRequest, "该账号不是 Claude 账号")
 		return
 	}

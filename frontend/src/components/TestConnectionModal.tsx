@@ -1,3 +1,4 @@
+import i18next from "i18next";
 // 账号测连弹窗:Codex、Claude(经 Codex 诊断帧)、Grok/Responses、Antigravity 共用。
 // 消费 GET /api/admin/accounts/:id/test 的 SSE:test_start → content* → diagnostics /
 // test_complete / error;codex_diagnostics 可能挂在任意事件上,读到 SSE 关闭再刷新列表。
@@ -142,7 +143,7 @@ export default function TestConnectionModal({
   // Grok 与 openai_responses 同属"账号自带模型清单"的 relay 风格账号，
   // Claude 也使用账号级原生 Messages 模型清单，但走独立分支。
   const isOpenAIResponsesAccount = Boolean(
-    account.openai_responses_api || account.grok_api,
+    account.openai_responses_api || account.grok_api || account.basispoints,
   );
   // 白名单为空的 Grok 账号以上游模型目录为准，不能只读 account.models。
   const isGrokAccount = Boolean(account.grok_api);
@@ -205,7 +206,7 @@ export default function TestConnectionModal({
         if (isGrokAccount) {
           const grokModels = grokConnectionTestModels(account);
           const preferredModel = grokModels.find(
-            (item) => item.toLowerCase() === settings.test_model.toLowerCase(),
+            (item) => item.toLowerCase() === (settings.test_model || "").toLowerCase(),
           );
           const nextModels = uniqueTestModels(grokModels, preferredModel, false);
           setModelOptions(nextModels);
@@ -229,7 +230,7 @@ export default function TestConnectionModal({
           const preferredModel =
             testModels.find(
               (item) =>
-                item.toLowerCase() === settings.test_model.toLowerCase(),
+                item.toLowerCase() === (settings.test_model || "").toLowerCase(),
             ) ??
             mappingAliases[0] ??
             accountModels[0];
@@ -341,7 +342,7 @@ export default function TestConnectionModal({
           `/api/admin/accounts/${account.id}/test?${params.toString()}`,
           {
             signal: controller.signal,
-            headers: getAdminKey() ? { "X-Admin-Key": getAdminKey() } : {},
+            headers: { ...(getAdminKey() ? { "X-Admin-Key": getAdminKey() } : {}), "Accept-Language": i18next.resolvedLanguage || i18next.language || "en" },
           },
         );
 

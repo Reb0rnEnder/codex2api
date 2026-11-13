@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Activity, Check, CheckCircle2, ChevronRight, Copy, Loader2, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
@@ -99,7 +100,7 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
         const key = getAdminKey();
         const response = await fetch(`/api/admin/accounts/${account.id}/test?${query.toString()}`, {
           signal: controller.signal,
-          headers: key ? { "X-Admin-Key": key } : {},
+          headers: { ...(key ? { "X-Admin-Key": key } : {}), "Accept-Language": i18next.resolvedLanguage || i18next.language || "en" },
         });
         if (!response.ok) {
           const body = await response.text();

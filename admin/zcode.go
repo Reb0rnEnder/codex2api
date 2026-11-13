@@ -55,11 +55,11 @@ func zcodeJSON(ctx context.Context, method, endpoint, token, proxyURL, body stri
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
-	client := *auth.BuildUTLSHTTPClient(proxyURL)
+	client := *auth.BuildHTTPClient(proxyURL)
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("Zcode connection failed")
+		return auth.ZcodeConnectionError("sign-in", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
@@ -233,7 +233,7 @@ func (h *Handler) ClaimZcodePlans(c *gin.Context) {
 		return
 	}
 	proxyURL := h.resolveClaudeModelProxy(id, row.ProxyURL)
-	client := auth.BuildUTLSHTTPClient(proxyURL)
+	client := auth.BuildHTTPClient(proxyURL)
 	report, err := auth.ClaimZcodeOfferedPlans(ctx, client, auth.ZcodeBaseURL, token, row.GetCredential("zcode_device_id"), input.CaptchaParam, input.CaptchaRegion, func(ctx context.Context) (string, string, error) {
 		return zcodecaptcha.Solve(ctx, client, auth.ZcodeBaseURL)
 	})
@@ -276,7 +276,7 @@ func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL 
 	if egress == "" {
 		egress = h.store.GetProxyURL()
 	}
-	quota, err := auth.FetchZcodeQuota(ctx, auth.BuildUTLSHTTPClient(egress), auth.ZcodeBaseURL, token, device)
+	quota, err := auth.FetchZcodeQuota(ctx, auth.BuildHTTPClient(egress), auth.ZcodeBaseURL, token, device)
 	if err != nil {
 		return 0, err
 	}
@@ -308,7 +308,7 @@ func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL 
 func (h *Handler) fetchClaudeRowModels(ctx context.Context, row *database.AccountRow) ([]string, error) {
 	proxyURL := h.resolveClaudeModelProxy(row.ID, row.ProxyURL)
 	if row.GetCredential("zcode") == "true" {
-		quota, err := auth.FetchZcodeQuota(ctx, auth.BuildUTLSHTTPClient(proxyURL), auth.ZcodeBaseURL, row.GetCredential("access_token"), row.GetCredential("zcode_device_id"))
+		quota, err := auth.FetchZcodeQuota(ctx, auth.BuildHTTPClient(proxyURL), auth.ZcodeBaseURL, row.GetCredential("access_token"), row.GetCredential("zcode_device_id"))
 		if err != nil {
 			return nil, err
 		}

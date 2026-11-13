@@ -1,3 +1,5 @@
+import { ZcodeAddForm } from "../components/ZcodeAddForm";
+import { ZcodeClaimDialog } from "../components/ZcodeClaimDialog";
 import { useIntelligenceBars } from "../hooks/useIntelligenceBars";
 import AccountIntelligenceBar, { AccountIntelligenceActions } from "../components/AccountIntelligenceBar";
 import type { IntelligenceBar } from "../lib/intelligenceCheck";
@@ -593,7 +595,9 @@ function ClaudeConcurrencyBadge({ acc }: { acc: AccountRow }) {
   );
 }
 
-export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode } = {}) {
+export default function ClaudeAccounts({ headerSlot, provider = "claude" }: { headerSlot?: ReactNode; provider?: "claude" | "zcode" } = {}) {
+  const isZcode = provider === "zcode";
+  const [claimTarget, setClaimTarget] = useState<AccountRow | null>(null);
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -653,7 +657,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
     setAnalysisLoading(true);
     setAnalysisError(null);
     try {
-      const res = await api.getAccountAnalysis("claude", controller.signal);
+      const res = await api.getAccountAnalysis(provider, controller.signal);
       if (!controller.signal.aborted) setAnalysis(res);
     } catch (error) {
       if (!controller.signal.aborted) setAnalysisError(getErrorMessage(error));
@@ -716,7 +720,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
     setPage(1);
   }, [debouncedSearch, statusFilter, healthTier, planFilter, authFilter, tagFilter, domainFilter, groupFilter, sortKey, sortDir, pageSize]);
 
-  const claudeGroups = useMemo(() => groups.filter((g) => g.channel === "claude"), [groups]);
+  const claudeGroups = useMemo(() => groups.filter((g) => g.channel === provider), [groups, provider]);
   const groupMap = useMemo(() => new Map(claudeGroups.map((g) => [g.id, g])), [claudeGroups]);
 
   const reloadGroups = useCallback(async () => {
@@ -740,7 +744,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
       const order: SortDir = sortKey ? sortDir : "asc";
       const res = await api.getAccountsPage(
         {
-          channel: "claude",
+          channel: provider,
           page,
           pageSize,
           search: debouncedSearch || undefined,
@@ -759,7 +763,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
         controller.signal,
       );
       if (controller.signal.aborted || generation !== reloadGenerationRef.current) return;
-      const rows = res.accounts ?? [];
+      const rows = (res.accounts ?? []).map(row => isZcode ? {...row, claude_auth_kind: "api_key"} : row);
       setLoadError(null);
       setAccounts(rows);
       setSummary(res.summary ?? null);
@@ -969,7 +973,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
   const openModelsEditor = useCallback(async (acc: AccountRow) => {
     try {
       const detail = await api.getAccount(acc.id);
-      if (detail.claude_api !== true) {
+      if (detail.claude_api !== true && !detail.zcode) {
         throw new Error(t("claude.modelsWhitelistNotClaude"));
       }
       setModelsTarget(detail);
@@ -1248,13 +1252,14 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
 
 	const handleRefreshAllModels = useCallback(async () => {
 		try {
+    if (isZcode) { await Promise.all(accounts.map(a => api.refreshClaudeModels(a.id))); await reload(); return; }
 			const result = await api.refreshAllClaudeModels();
 			showToast(t("claude.allModelsRefreshedSummary", result), result.failed > 0 ? "warning" : "success");
 			void reload();
     } catch (error) {
       showToast(getErrorMessage(error), "error");
     }
-  }, [reload, showToast, t]);
+  }, [reload, showToast, t, isZcode, accounts]);
 
   const handleToggleEnabled = useCallback(
     async (acc: AccountRow) => {
@@ -1545,8 +1550,8 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
   return (
     <div className="relative @container/claude-accounts">
       <PageHeader
-        title={t("claude.title")}
-        description={t("claude.subtitle")}
+        title={isZcode ? "Zcode" : t("claude.title")}
+        description={t(isZcode ? "zcode.providerHint" : "claude.subtitle")}
         hideTitle={Boolean(headerSlot)}
         actionsBelow
         titleAdornment={headerSlot}
@@ -1554,9 +1559,9 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
           <div className="flex w-full flex-wrap items-center gap-1.5 sm:gap-2 [&>button]:h-8">
             <Button size="sm" className="min-w-0 sm:flex-none" onClick={() => openAdd("oauth")}>
               <Plus className="size-3.5" />
-              {t("claude.addAccount")}
+              {t(isZcode ? "zcode.add" : "claude.addAccount")}
             </Button>
-            <Button variant="outline" size="sm" className="size-8 p-0 md:w-auto md:px-2.5" title={t("claude.importCredentials")} aria-label={t("claude.importCredentials")} onClick={() => openAdd("import")}>
+            <Button variant="outline" size="sm" className="size-8 p-0 md:w-auto md:px-2.5" title={t("claude.importCredentials")} aria-label={t("claude.importCredentials")} disabled={isZcode} onClick={() => openAdd("import")}>
               <Upload className="size-3.5" />
               <span className="hidden md:inline">{t("claude.importCredentials")}</span>
             </Button>
@@ -1566,7 +1571,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
               className="size-8 p-0 md:w-auto md:px-2.5"
               title={selectedIds.length > 0 ? t("claude.exportSelected") : t("claude.exportAll")}
               aria-label={selectedIds.length > 0 ? t("claude.exportSelected") : t("claude.exportAll")}
-              disabled={exporting || total === 0}
+              disabled={isZcode || exporting || total === 0}
               onClick={() => void handleExport(selectedIds.length > 0 ? "selected" : "all")}
             >
               <Download className="size-3.5" />
@@ -1779,7 +1784,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
                 </div>
               ) : null}
               <div className={segmentGroupClass}>
-                {authTabs.map((a) => (
+                {(isZcode ? authTabs.slice(0, 1) : authTabs).map((a) => (
                   <button key={a.id} type="button" aria-pressed={authFilter === a.id} onClick={() => setAuthFilter(a.id)} className={segmentButtonClass(authFilter === a.id)}>
                     {typeof a.count === "number" ? `${a.label} ${a.count}` : a.label}
                   </button>
@@ -1953,14 +1958,14 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
             error={accounts.length === 0 ? loadError : null}
             onRetry={() => void reload()}
             isEmpty={accounts.length === 0}
-            emptyIcon={<ChannelLogo channel="claude" size={30} />}
-            emptyTitle={poolEmpty ? t("claude.emptyTitle") : t("claude.noMatchesTitle")}
-            emptyDescription={poolEmpty ? t("claude.emptyDescription") : t("claude.noMatchesDescription")}
+            emptyIcon={<ChannelLogo channel={provider} size={30} />}
+            emptyTitle={poolEmpty ? t(isZcode ? "zcode.noAccounts" : "claude.emptyTitle") : t("claude.noMatchesTitle")}
+            emptyDescription={poolEmpty ? t(isZcode ? "zcode.providerHint" : "claude.emptyDescription") : t("claude.noMatchesDescription")}
             action={
               poolEmpty ? (
                 <Button onClick={() => openAdd("oauth")}>
                   <Plus className="size-4" />
-                  {t("claude.addAccount")}
+                  {t(isZcode ? "zcode.add" : "claude.addAccount")}
                 </Button>
               ) : (
                 <Button variant="outline" onClick={clearFilters}>
@@ -2030,6 +2035,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
                       authJsonExporting={authJsonExportingIds.has(acc.id)}
                       onEditProxy={() => setQuickProxyAccount(acc)}
                       onRefresh={() => void handleRefresh(acc)}
+                      onClaimPlans={isZcode ? () => setClaimTarget(acc) : undefined}
                       onRefreshModels={() => void handleRefreshModels(acc)}
                       onExportOne={() => void handleExportOne(acc)}
                       onToggleEnabled={() => void handleToggleEnabled(acc)}
@@ -2064,7 +2070,8 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
         </CardContent>
       </Card>
 
-      {showAdd ? (
+      {claimTarget && <ZcodeClaimDialog id={claimTarget.id} name={claimTarget.name || `#${claimTarget.id}`} onClose={() => setClaimTarget(null)} onChanged={async () => { await reload(); }} />}
+      {showAdd && isZcode ? <Modal show title={t("zcode.add")} onClose={() => setShowAdd(false)}><ZcodeAddForm onAdded={() => {setShowAdd(false); void reload();}} /></Modal> : showAdd ? (
         <ClaudeAddModal
           proxies={proxyPool}
           groups={claudeGroups}
@@ -2079,7 +2086,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
 
       {showManageGroups ? (
         <AccountGroupManagerModal
-          channel="claude"
+          channel={provider}
           groups={claudeGroups}
           title={t("claude.manageGroups")}
           onClose={() => setShowManageGroups(false)}
@@ -2093,7 +2100,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
       <BatchAccountGroupModal
         show={batchGroupOpen}
         ids={selectedIds}
-        channel="claude"
+        channel={provider}
         groups={claudeGroups}
         onClose={() => setBatchGroupOpen(false)}
         onSaved={() => {
@@ -2277,6 +2284,7 @@ function ClaudeAccountRow({
   onEditProxy,
   onRefresh,
   onRefreshModels,
+  onClaimPlans,
   onExportOne,
   onToggleEnabled,
   onToggleLock,
@@ -2306,6 +2314,7 @@ function ClaudeAccountRow({
   onEditProxy: () => void;
   onRefresh: () => void;
   onRefreshModels: () => void;
+  onClaimPlans?: () => void;
   onExportOne: () => void;
   onToggleEnabled: () => void;
   onToggleLock: () => void;
@@ -2340,6 +2349,7 @@ function ClaudeAccountRow({
     (acc.claude_usage_windows ?? []).some((window) => window.model_scoped);
 
   const rowMenuItems: HeaderActionMenuItem[] = [
+    ...(onClaimPlans ? [{key: "claim-plans", label: t("zcode.claimPlans"), icon: <Plus className="size-3.5" />, onSelect: onClaimPlans}] : []),
     { key: "edit", label: t("claude.editTitle"), icon: <Pencil className="size-3.5" />, onSelect: onEdit },
     { key: "usage", label: t("accounts.usageDetail"), icon: <BarChart3 className="size-3.5" />, onSelect: onUsage },
     { key: "test", label: t("accounts.testConnection"), icon: <Zap className="size-3.5" />, onSelect: onTest },
@@ -2387,7 +2397,7 @@ function ClaudeAccountRow({
       onSelect: onRefreshModels,
     },
     { key: "delete", label: t("accounts.deleteAccount"), icon: <Trash2 className="size-3.5" />, destructive: true, onSelect: onDelete },
-  ];
+  ].filter(item => !acc.zcode || !["export", "edit", "edit-models"].includes(item.key));
 
   return (
     <TableRow
@@ -2444,7 +2454,7 @@ function ClaudeAccountRow({
       <TableCell className="min-w-[220px] whitespace-normal text-[14px] text-muted-foreground">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card ring-1 ring-border shadow-sm">
-            <ChannelLogo channel="claude" size={32} className="rounded-lg" />
+            <ChannelLogo channel={acc.zcode ? "zcode" : "claude"} size={32} className="rounded-lg" />
           </span>
           <div className="flex min-w-0 flex-col items-start gap-1">
             <button
@@ -2487,7 +2497,7 @@ function ClaudeAccountRow({
                     {t("claude.modelCount", { count: acc.models.length })}
                   </button>
                 ) : null}
-                {isAPIKey ? <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">{t("claude.authKindAPIKey")}</span> : null}
+                {isAPIKey ? <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">{acc.zcode ? "Zcode" : t("claude.authKindAPIKey")}</span> : null}
                 {/* 凭据形态徽章:长效 Setup Token 与模型数并排,和套餐列分离 */}
                 {acc.claude_auth_kind === "setup_token" ? (
                   <span
@@ -2530,7 +2540,7 @@ function ClaudeAccountRow({
       {columns.plan ? (
         <TableCell>
           <div className="flex flex-wrap items-center gap-1.5">
-            {isAPIKey ? <span className="text-xs font-medium">API</span> : acc.plan_type ? (
+            {isAPIKey && !acc.zcode ? <span className="text-xs font-medium">API</span> : acc.plan_type ? (
               (() => {
                 const badge = claudePlanBadge(acc.plan_type);
                 return (
@@ -2614,7 +2624,7 @@ function ClaudeAccountRow({
       <TableCell data-account-actions className="text-right">
         <div className="flex items-center justify-end gap-0.5">
           <div className="hidden items-center gap-0.5 @4xl/claude-accounts:flex">
-          <Button variant="ghost" size="icon-sm" className="size-8" onClick={onEdit} title={t("claude.editTitle")} aria-label={t("claude.editTitle")}>
+          <Button variant="ghost" size="icon-sm" className="size-8" disabled={Boolean(acc.zcode)} onClick={onEdit} title={t("claude.editTitle")} aria-label={t("claude.editTitle")}>
             <Pencil className="size-3.5" />
           </Button>
           <Button variant="ghost" size="icon-sm" className="size-8" onClick={onUsage} title={t("accounts.usageDetail")} aria-label={t("accounts.usageDetail")}>
