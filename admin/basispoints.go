@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -116,6 +117,9 @@ func (h *Handler) CompleteBasisPointsOAuth(c *gin.Context) {
 		writeError(c, 502, err.Error())
 		return
 	}
+	if plan == "" {
+		plan = info.PlanType
+	}
 	name := security.SanitizeInput(strings.TrimSpace(req.Name))
 	if name == "" {
 		name = "BasisPoints"
@@ -129,7 +133,11 @@ func (h *Handler) CompleteBasisPointsOAuth(c *gin.Context) {
 		"access_token": tokens.AccessToken, "refresh_token": tokens.RefreshToken, "id_token": tokens.IDToken,
 		"expires_at": time.Now().Add(time.Duration(tokens.ExpiresIn) * time.Second).UTC().Format(time.RFC3339),
 		"account_id": info.ChatGPTAccountID, "email": info.Email, "plan_type": plan,
-		"models": models,
+		"models":                        models,
+		"basispoints_access_checked_at": time.Now().UTC().Format(time.RFC3339),
+	}
+	if !info.SubscriptionExpiresAt.IsZero() {
+		credentials["subscription_expires_at"] = info.SubscriptionExpiresAt.UTC().Format(time.RFC3339)
 	}
 	// Keep this identity separate from the same user's Codex OAuth account.
 	id, err := h.db.InsertAccountWithCredentials(ctx, name, credentials, sess.ProxyURL)
@@ -143,6 +151,44 @@ func (h *Handler) CompleteBasisPointsOAuth(c *gin.Context) {
 	}
 	h.db.InsertAccountEventAsync(id, "added", "basispoints_oauth")
 	c.JSON(http.StatusOK, gin.H{"id": id, "message": "BasisPoints account added", "models": models})
+}
+
+func (h *Handler) RefreshBasisPointsAccess(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		writeError(c, 400, "Invalid account ID")
+		return
+	}
+	account := h.store.FindByID(id)
+	if account == nil || !account.IsBasisPoints() {
+		writeError(c, 400, "This account is not a BasisPoints account")
+		return
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
+	account.Mu().RLock()
+	accountID := account.AccountID
+	existingPlan := account.PlanType
+	account.Mu().RUnlock()
+	models, plan, err := auth.FetchBasisPointsModels(ctx, account.GetAccessToken(), accountID, h.store.ResolveProxyForAccount(account))
+	if err != nil {
+		writeError(c, 502, err.Error())
+		return
+	}
+	if plan == "" {
+		plan = existingPlan
+	}
+	checked := time.Now().UTC().Format(time.RFC3339)
+	if err := h.db.UpdateCredentials(ctx, id, map[string]any{"models": models, "plan_type": plan, "basispoints_access_checked_at": checked}); err != nil {
+		writeInternalError(c, err)
+		return
+	}
+	account.Mu().Lock()
+	account.Models = append([]string(nil), models...)
+	account.PlanType = plan
+	account.Mu().Unlock()
+	h.expireAccountListSnapshot("codex")
+	c.JSON(200, gin.H{"models": models, "plan_type": plan, "checked_at": checked})
 }
 
 func exchangeBasisPointsCode(ctx context.Context, code, verifier, proxyURL string) (*rawOAuthTokenResp, error) {

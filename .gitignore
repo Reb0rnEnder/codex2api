@@ -11,6 +11,9 @@ codex2api
 
 # Frontend
 frontend/node_modules/
+**/node_modules/
+/build/
+/.tools/
 frontend/dist/
 
 # IDE

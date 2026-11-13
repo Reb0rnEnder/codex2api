@@ -488,6 +488,8 @@ func codexManifestCapabilityAccountFilter(row *database.APIKeyRow, model string)
 			return antigravityChannelAccountFilter(model)(account)
 		case database.UpstreamChannelClaude:
 			return false // This provider serves native Messages, not Responses.
+		case database.UpstreamChannelZcode:
+			return account.IsZcode() && claudeAccountSupportsModel(account, model)
 		default:
 			return true
 		}

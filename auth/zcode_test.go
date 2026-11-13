@@ -55,7 +55,7 @@ func TestZcodeQuotaModelDiscovery(t *testing.T) {
 func TestZcodeAccountReloadKeepsJWTExpiry(t *testing.T) {
 	store, db, id, _ := codexRefreshFixture(t, func(http.ResponseWriter, *http.Request) { t.Fatal("Zcode must not use Codex OAuth refresh") })
 	expiry := time.Now().Add(time.Hour).Truncate(time.Second)
-	err := db.UpdateCredentials(context.Background(), id, map[string]any{"upstream_type": UpstreamClaude, "zcode": "true", "zcode_device_id": "device", "refresh_token": "", "claude_auth_kind": ClaudeAuthKindAPIKey, "expires_at": expiry.Format(time.RFC3339), "models": []string{"GLM-5.3"}})
+	err := db.UpdateCredentials(context.Background(), id, map[string]any{"upstream_type": UpstreamZcode, "zcode": "true", "zcode_device_id": "device", "refresh_token": "", "claude_auth_kind": ClaudeAuthKindAPIKey, "expires_at": expiry.Format(time.RFC3339), "models": []string{"GLM-5.3"}})
 	if err != nil {
 		t.Fatal(err)
 	}

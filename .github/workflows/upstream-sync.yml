@@ -54,6 +54,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
+          npm ci --prefix ../internal/zcodecaptcha/assets --ignore-scripts --no-audit --no-fund
           npm test
           npm run typecheck
           npm run build

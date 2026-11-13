@@ -669,7 +669,7 @@ export const api = {
     if (params.order) searchParams.set('order', params.order)
     return request<AccountsPageResponse>(`/accounts?${searchParams.toString()}`, { signal })
   },
-  getAccountAnalysis: (channel: 'codex' | 'grok' | 'antigravity' | 'claude' = 'codex', signal?: AbortSignal) =>
+  getAccountAnalysis: (channel: UpstreamChannel = 'codex', signal?: AbortSignal) =>
     request<AccountAnalysisResponse>(`/accounts/analysis?channel=${channel}`, { signal }),
   getAccountPageStats: (ids: number[], signal?: AbortSignal) => {
     const query = new URLSearchParams({ ids: ids.join(',') })
@@ -693,12 +693,14 @@ export const api = {
     request<{ session_id: string; auth_url: string }>('/accounts/basispoints/oauth/start', { method: 'POST', body: JSON.stringify(data) }),
   startZcodeLogin: (data: { name?: string; proxy_url?: string }) =>
     request<{ session_id: string; auth_url: string }>('/accounts/zcode/login/start', { method: 'POST', body: JSON.stringify(data) }),
+  refreshBasisPointsAccess: (id: number) =>
+    request<{ models: string[]; plan_type: string; checked_at: string }>(`/accounts/${id}/basispoints/access`, { method: 'POST' }),
   pollZcodeLogin: (data: { session_id: string }) =>
     request<{ status: 'pending' | 'ready' | 'failed' | 'expired'; id?: number }>('/accounts/zcode/login/poll', { method: 'POST', body: JSON.stringify(data) }),
   addZcodeAccount: (data: { token: string; name?: string; proxy_url?: string }) =>
     request<CreateAccountResponse>('/accounts/zcode', { method: 'POST', body: JSON.stringify(data) }),
   claimZcodePlans: (id: number, data: { captcha_param?: string; captcha_region?: string }) =>
-    request<{ plans: { plan_id: string; name: string; status: 'claimed' | 'already_claimed' | 'captcha_required' | 'failed'; code?: number; http_status?: number }[]; quota_error?: string }>(`/accounts/${id}/zcode/claim`, { method: 'POST', body: JSON.stringify(data), timeoutMs: 100_000 }),
+    request<{ plans: { plan_id: string; name: string; status: 'claimed' | 'already_claimed' | 'captcha_required' | 'solver_unavailable' | 'failed'; code?: number; http_status?: number }[]; quota_error?: string }>(`/accounts/${id}/zcode/claim`, { method: 'POST', body: JSON.stringify(data), timeoutMs: 190_000 }),
   completeBasisPointsOAuth: (data: { session_id: string; callback_url: string; name?: string }) =>
     request<CreateAccountResponse>('/accounts/basispoints/oauth/complete', { method: 'POST', body: JSON.stringify(data) }),
   fetchOpenAIResponsesModels: (data: FetchOpenAIResponsesModelsRequest) =>

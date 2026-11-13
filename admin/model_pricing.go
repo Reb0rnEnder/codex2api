@@ -193,7 +193,7 @@ func (h *Handler) claudeChannelModels() []string {
 	seen := make(map[string]struct{})
 	models := make([]string, 0)
 	for _, account := range h.store.Accounts() {
-		if account == nil || !account.IsClaudeOAuth() {
+		if account == nil || account.IsZcode() || !account.IsClaudeOAuth() {
 			continue
 		}
 		for _, model := range proxy.DefaultClaudeModelIDsForAccount(account) {
@@ -223,7 +223,7 @@ func (h *Handler) claudeAvailableChannelModels() []string {
 	seen := make(map[string]struct{})
 	models := make([]string, 0)
 	for _, account := range h.store.Accounts() {
-		if account == nil || !account.IsClaudeOAuth() ||
+		if account == nil || account.IsZcode() || !account.IsClaudeOAuth() ||
 			atomic.LoadInt32(&account.Disabled) != 0 ||
 			atomic.LoadInt32(&account.DispatchPaused) != 0 {
 			continue

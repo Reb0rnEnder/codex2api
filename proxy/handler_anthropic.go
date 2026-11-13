@@ -273,11 +273,11 @@ func (h *Handler) hasNativeClaudeAccountMatching(c *gin.Context, model string, a
 		return false
 	}
 	requestedChannel := requestUpstreamChannel(c)
-	if requestedChannel != "" && requestedChannel != database.UpstreamChannelClaude {
+	if requestedChannel != "" && requestedChannel != database.UpstreamChannelClaude && requestedChannel != database.UpstreamChannelZcode {
 		return false
 	}
 	apiKeyID := requestAPIKeyID(c)
-	accountFilter := claudeChannelAccountFilter(model)
+	accountFilter := h.applyUpstreamChannelFilter(c, model, func(a *auth.Account) bool { return a.IsClaudeOAuth() && claudeAccountSupportsModel(a, model) })
 	ctx := context.Background()
 	if c != nil && c.Request != nil {
 		ctx = c.Request.Context()

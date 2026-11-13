@@ -23,7 +23,8 @@ func (db *DB) ListAccountListProjection(ctx context.Context, channel string) ([]
 			antigravity_permissions text, antigravity_entitlements text, antigravity_quota text,
 			claude_usage_probe_at text, claude_usage_probe_error text,
 			claude_auth_kind text,
-			subscription_expires_at text, subscription_sync_state text, subscription_grace_until text
+			subscription_expires_at text, subscription_sync_state text, subscription_grace_until text,
+			basispoints text, zcode text, basispoints_access_checked_at text
 		)`
 	credentialColumns := `
 		COALESCE(account_public.upstream_type, ''),
@@ -46,7 +47,9 @@ func (db *DB) ListAccountListProjection(ctx context.Context, channel string) ([]
 		COALESCE(account_public.claude_auth_kind, ''),
 		COALESCE(account_public.subscription_expires_at, ''),
 		COALESCE(account_public.subscription_sync_state, ''),
-		COALESCE(account_public.subscription_grace_until, '')`
+		COALESCE(account_public.subscription_grace_until, ''),
+		COALESCE(account_public.basispoints, ''), COALESCE(account_public.zcode, ''),
+		COALESCE(account_public.basispoints_access_checked_at, '')`
 	if db.isSQLite() {
 		upstreamExpr = `LOWER(COALESCE(json_extract(credentials, '$.upstream_type'), ''))`
 		fromClause = `FROM accounts`
@@ -71,7 +74,9 @@ func (db *DB) ListAccountListProjection(ctx context.Context, channel string) ([]
 			COALESCE(json_extract(credentials, '$.claude_auth_kind'), ''),
 			COALESCE(json_extract(credentials, '$.subscription_expires_at'), ''),
 			COALESCE(json_extract(credentials, '$.subscription_sync_state'), ''),
-			COALESCE(json_extract(credentials, '$.subscription_grace_until'), '')`
+			COALESCE(json_extract(credentials, '$.subscription_grace_until'), ''),
+			COALESCE(json_extract(credentials, '$.basispoints'), ''), COALESCE(json_extract(credentials, '$.zcode'), ''),
+			COALESCE(json_extract(credentials, '$.basispoints_access_checked_at'), '')`
 	}
 	where += accountChannelFilterSQL(channel, upstreamExpr)
 	query := `SELECT id, name, type, proxy_url, status, cooldown_reason, cooldown_until,
@@ -114,6 +119,7 @@ func scanAccountListProjection(scanner accountProjectionScanner) (*AccountRow, e
 	var antigravitySyncError, antigravitySyncWarning, antigravityPermissions, antigravityQuota string
 	var claudeUsageProbeAt, claudeUsageProbeError, claudeAuthKind string
 	var subscriptionExpiresAt, subscriptionSyncState, subscriptionGraceUntil string
+	var basispoints, zcode, basispointsAccessCheckedAt string
 	var modelsRaw interface{}
 	var hasAPIKey, hasRefreshToken, verifiedEmail bool
 	if err := scanner.Scan(
@@ -126,6 +132,7 @@ func scanAccountListProjection(scanner accountProjectionScanner) (*AccountRow, e
 		&antigravitySyncError, &antigravitySyncWarning, &antigravityPermissions, &antigravityQuota,
 		&claudeUsageProbeAt, &claudeUsageProbeError, &claudeAuthKind,
 		&subscriptionExpiresAt, &subscriptionSyncState, &subscriptionGraceUntil,
+		&basispoints, &zcode, &basispointsAccessCheckedAt,
 	); err != nil {
 		return nil, fmt.Errorf("扫描账号列表投影失败: %w", err)
 	}
@@ -144,6 +151,7 @@ func scanAccountListProjection(scanner accountProjectionScanner) (*AccountRow, e
 		return nil, fmt.Errorf("解析 updated_at 失败: %w", err)
 	}
 	row.Credentials = map[string]interface{}{
+		"basispoints": basispoints, "zcode": zcode, "basispoints_access_checked_at": basispointsAccessCheckedAt,
 		"upstream_type": upstreamType,
 		"email":         email,
 		"base_url":      baseURL,

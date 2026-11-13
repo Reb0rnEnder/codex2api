@@ -28,8 +28,10 @@ type ZcodeClaimReport struct {
 }
 
 // ClaimZcodeOfferedPlans claims only IDs offered by this account's preview.
-// A provider challenge is reported to the caller; it is never solved or retried automatically.
-func ClaimZcodeOfferedPlans(ctx context.Context, client *http.Client, baseURL, token, deviceID, captchaParam, captchaRegion string) (*ZcodeClaimReport, error) {
+// Optional solvers supply a fresh verification result for each claim and one
+// retry on a provider rejection. Manual results are never reused for a retry.
+func ClaimZcodeOfferedPlans(ctx context.Context, client *http.Client, baseURL, token, deviceID, captchaParam, captchaRegion string, solvers ...func(context.Context) (string, string, error)) (*ZcodeClaimReport, error) {
+	manualCaptcha := captchaParam != ""
 	clientCopy := *client
 	clientCopy.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	client = &clientCopy
@@ -96,7 +98,23 @@ func ClaimZcodeOfferedPlans(ctx context.Context, client *http.Client, baseURL, t
 		var result struct {
 			Code *int `json:"code"`
 		}
-		status, claimErr := request(http.MethodPost, base+"/claim", body, &result)
+		var claimErr error
+		for attempt := 0; attempt < 2; attempt++ {
+			result.Code = nil
+			status = 0
+			if !manualCaptcha && len(solvers) > 0 {
+				captchaParam, captchaRegion, claimErr = solvers[0](ctx)
+				if claimErr != nil {
+					outcome.Status = "solver_unavailable"
+					break
+				}
+			}
+			status, claimErr = request(http.MethodPost, base+"/claim", body, &result)
+			if result.Code != nil && *result.Code == 3007 && !manualCaptcha && len(solvers) > 0 {
+				continue
+			}
+			break
+		}
 		outcome.HTTPStatus = status
 		if result.Code != nil {
 			outcome.Code = *result.Code

@@ -5867,7 +5867,8 @@
         "codex": "该 Key 只调度 Codex 账号，不会使用 Grok、Antigravity 或 Claude 账号。",
         "grok": "该 Key 只调度 Grok 账号。请求先走账号上的模型映射，再按该账号的模型列表派发；模型列表为空时使用可见目录，尚未同步目录时使用默认模型列表。",
         "antigravity": "该 Key 只调度 Google Antigravity 账号，并使用 Gemini 模型目录。",
-        "claude": "该 Key 只调度 Claude 账号，并使用 Claude 模型目录。"
+        "claude": "该 Key 只调度 Claude 账号，并使用 Claude 模型目录。",
+        "zcode": "独立的 Zcode 账号池。创建 API Key 时请选择 Zcode 上游渠道。请求通过 Zcode 的 Messages API 使用其 GLM 模型。"
       },
       "upstreamChannelAutoTab": "自动",
       "sectionScope": "分组 / 账号预算",
@@ -5909,7 +5910,8 @@
       "scopeSkipStat": "已因该预算跳过 {{count}} 次请求(最近 {{time}})",
       "scopeSelfLockWarning": "该分组是这把 Key 唯一允许的分组:预算耗尽后没有其它分组可落,等价于整把 Key 停用。",
       "scopeBadgeExhausted": "预算耗尽 {{count}}/{{total}}",
-      "scopeBadgeActive": "预算 {{percent}}% ({{window}})"
+      "scopeBadgeActive": "预算 {{percent}}% ({{window}})",
+      "upstreamChannelZcode": "Zcode"
     },
     "allowedGroupsLabel": "允许账号分组",
     "allowedGroupsPlaceholder": "选择允许调用的分组",
@@ -7428,7 +7430,8 @@
       "questionText": "题目正文",
       "expectedAnswerRegularExpression": "预期答案 / 正则",
       "durationThresholdMilliseconds": "耗时阈值（毫秒）",
-      "noQuestionsYetAddAndEnableAt": "暂无题目，开启自动检测前请添加并启用至少一道题。"
+      "noQuestionsYetAddAndEnableAt": "暂无题目，开启自动检测前请添加并启用至少一道题。",
+      "disableAutomaticChecksForListedAccounts": "关闭以上 {{count}} 个账号的自动检测"
     },
     "promptFilterNewAPIBindings": {
       "selectTheCodex2APIKeyUsedForThis": "选择用于接入的 Codex2API Key",
@@ -7722,15 +7725,19 @@
     "quotaRefreshFailed": "领取已结束，但无法刷新计费信息",
     "connectionFailed": "连接或响应错误",
     "captchaOptions": "服务商验证（如有要求）",
-    "captchaHint": "如果 Zcode 要求验证，请在官方应用中完成。可在此填写验证参数和区域后重试。验证参数可能仅限使用一次；不会自动解决验证。",
+    "captchaHint": "内置的 Zcode2Api 验证助手会为每次领取获取新的验证参数，并在参数被拒绝后重试一次。服务器需安装 Node.js 22.19+。也可在下方填写官方验证结果；参数可能仅限使用一次。",
     "captchaParam": "验证参数",
     "captchaRegion": "验证区域（可选）",
     "claimStatus": {
       "claimed": "已领取",
       "already_claimed": "已领取过",
       "captcha_required": "请先在 Zcode 完成验证再重试",
-      "failed": "领取失败"
-    }
+      "failed": "领取失败",
+      "solver_unavailable": "验证助手不可用或失败。请检查服务器的 Node.js 22.19+，或提供官方验证结果。"
+    },
+    "providerHint": "独立的 Zcode 账号池。创建 API Key 时请选择 Zcode 上游渠道。请求通过 Zcode 的 Messages API 使用其 GLM 模型。",
+    "noAccounts": "暂无 Zcode 账号，请先添加账号。",
+    "noModelAccess": "暂无模型权限，请领取此账号可用的套餐。"
   },
   "basispoints": {
     "intro": "使用 PowerPoint 扩展的 ChatGPT 登录方式。请求通过 BasisPoints 模型发送，登录凭证自动刷新。",
@@ -7740,19 +7747,26 @@
     "restart": "重新登录",
     "start": "开始登录",
     "openSignIn": "打开 ChatGPT 登录",
-    "helperHint": "登录后保持 BasisPoints 回调页打开，不要刷新。打开控制台（F12），粘贴恢复脚本，从弹窗复制 URL。脚本仅读取当前页面导航记录，不发送网络请求。",
-    "copyConsole": "复制控制台脚本",
-    "copyBookmark": "复制书签脚本",
-    "bookmarkHint": "书签方式：新建书签，将网址替换为复制的书签脚本。登录后在回调页点击该书签。脚本仅适用于本次登录。",
-    "viewScript": "查看恢复脚本",
-    "networkFallback": "备用：网络面板方式",
-    "networkHint": "登录前打开开发者工具的 Network 面板并启用 Preserve log。登录后复制 /auth/callback?code=…&state=… 的完整请求 URL，在下方粘贴。导航恢复不可用时使用此方法。",
     "expiry": "登录会话 30 分钟后过期。添加账号后访问令牌会自动刷新。",
     "callback": "回调 URL",
     "add": "添加 BasisPoints 账号",
-    "copyFailed": "复制失败，请手动选择并复制脚本。",
     "startFailed": "无法开始登录",
-    "finishFailed": "无法完成登录"
+    "finishFailed": "无法完成登录",
+    "officeWarning": "BasisPoints 是 Office 集成，回复可能包含 BPS 提供的 Office 专用指令或工具上下文。此网关不会执行 Office 编辑工具。",
+    "signInStep": "使用 ChatGPT 登录",
+    "callbackStep": "粘贴回调链接",
+    "callbackHint": "登录后，ChatGPT 可能显示“无法登录，请重试”。如果地址栏仍包含带 code 和 state 的 BasisPoints 回调链接，复制完整链接并粘贴到此处。无需书签、脚本或开发者工具。",
+    "accountStatus": "BasisPoints 订阅与访问权限",
+    "plan": "套餐",
+    "access": "BPS 访问权限",
+    "confirmed": "上次检查已确认",
+    "unknown": "未知",
+    "notProvided": "BPS 未提供",
+    "subscriptionExpiry": "订阅到期时间",
+    "checked": "上次检查",
+    "modelAccess": "BPS 提供 {{count}} 个可用模型",
+    "billingLimit": "套餐与访问权限来自 BPS。仅显示服务提供的续费、取消及配额信息；此类账号不使用 Codex 用量。",
+    "accessRefreshFailed": "无法刷新 BasisPoints 访问权限。"
   },
   "intelligenceLabels": {
     "queued": "等待执行",

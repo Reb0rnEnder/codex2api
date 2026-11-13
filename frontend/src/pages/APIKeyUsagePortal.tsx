@@ -1201,6 +1201,7 @@ function statusBadgeClass(code: number): string {
 
 const CHANNEL_LABELS: Record<UpstreamChannel, string> = {
   codex: 'Codex',
+  zcode: 'Zcode',
   grok: 'Grok',
   antigravity: 'Antigravity',
   claude: 'Claude',

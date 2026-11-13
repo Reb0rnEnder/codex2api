@@ -1,28 +1,23 @@
-# ChatGPT BasisPoints accounts
+# BasisPoints accounts
 
-Open **Accounts → Add account → ChatGPT BasisPoints**. Choose **Start sign-in**, then **Open ChatGPT sign-in**. This opens the same Office OAuth sign-in route as the PowerPoint extension; it does not use device-code authorization.
+Open **Accounts > Add account > BasisPoints**, the last sign-in option. Select **Start sign-in**, then **Open ChatGPT sign-in**. This uses the Office extension OAuth route rather than device-code authorization.
 
-After signing in, keep the BasisPoints callback page open without refreshing. The account dialog now offers **Copy console script** and **Copy bookmarklet**:
+After login, ChatGPT may display "Couldn't sign in, please try again" while leaving a URL with `code` and `state` in the address bar. Copy the entire callback URL and paste it into the dialog. No scripts, bookmarklets, or DevTools are needed. The server validates the origin, path, state, expiry, and single-use session before exchanging the code with its PKCE verifier. If the callback URL does not contain a code, restart sign-in.
 
-- Console: open DevTools on the callback page, paste the copied script into the console, run it, and copy the URL from the resulting prompt.
-- Bookmarklet: create a bookmark, replace its URL with the copied bookmarklet, and click it while viewing the callback page. Copy the URL from the prompt.
+The login session expires after 30 minutes. After the account is added, access and refresh tokens use the existing durable rotation and token-cache machinery. These credentials stay separate from Codex credentials for the same ChatGPT identity.
 
-Paste the recovered URL into the account dialog. Each helper checks the callback origin, path, and current session state. It reads the original document URL from the browser's Navigation Timing entry, which can retain the callback query after `history.replaceState` clears the address bar. It makes no network requests and reads no stored tokens. This behavior was checked in headless Edge. Do not reload the callback page before running the helper; some browser policies may prevent bookmarklets or hide navigation details.
+Accounts remain in the Codex pool with a BasisPoints marker and presentation icon. Their model list and plan come from BPS `/basispoints/api/responses/access?include_models=true`. Account details include a **BasisPoints subscription and access** panel with an explicit refresh action. Subscription expiry is retained when supplied by the login token. Missing renewal, cancellation, expiry, or quota data is shown as unknown/unavailable; Codex WHAM usage is not substituted.
 
-The Network-tab fallback remains available: before signing in, open DevTools → Network and enable **Preserve log**. After sign-in, copy the full request URL for `/auth/callback?code=…&state=…`. An Office dialog error on the callback page is expected outside PowerPoint. The server checks the callback origin, path, state, expiry, and single-use session before exchanging the code with its PKCE verifier.
+## Instructions and custom tools
 
-The registered callback belongs to OpenAI, so codex2api cannot receive it directly. These helpers simplify the manual handoff; they do not redirect the callback to another server or make the address-bar URL remain available.
+The PowerPoint capture includes an extension-provided developer message. This adapter does not copy that message, extension document contents, or the extension's Office tool definitions. It preserves caller instructions, developer/system messages, function tools, tool choice, function calls, and function-call outputs. Local tests verify this passthrough. It does not execute the caller's tools; return tool results through your client as usual.
 
-After authorization, the server checks BasisPoints access and discovers the account's available models from `/basispoints/api/responses/access`. Accounts stay in the Codex channel, with a `basispoints` marker distinguishing them from Codex CLI accounts. Chat Completions, Messages, and Responses requests use the existing Responses adapter and stream bridge, connecting to the BasisPoints WebSocket with its bearer subprotocol. Internal BasisPoints control frames are removed from the downstream stream. Requests use the model catalog returned for this account; the catalog is not hardcoded from the development capture.
+BPS may add its own Office-specific instructions or tool context on the server. There is no verified switch to remove that context. The add-account form warns about it. Removing all caller instructions would not remove instructions added by BPS and would discard your own application rules. Live acceptance of client-defined tools still requires verification with a current account.
 
-Refresh tokens are stored as account credentials and renewed with the BasisPoints OAuth client. The existing refresh locks, durable rotation journal, generation checks, and token cache also apply. New access and refresh tokens survive a restart. Codex WHAM usage and model probes do not apply to these accounts. BasisPoints and Codex credentials are kept separate even for the same ChatGPT identity.
+Chat Completions, Messages, and Responses requests reuse the existing Responses conversions and stream bridge. They connect to the BPS WebSocket using its bearer subprotocol. Internal BPS control frames are removed downstream. Office document editing, executor registration, replay/resume, native interruption acknowledgements, compact requests, and image generation are not implemented. Backend entitlements and limits remain enforced by BPS.
 
-This is an experimental adapter based on the supplied HAR and the extension's published JavaScript. Backend access and rate limits remain enforced by BasisPoints. PowerPoint document editing, executor registration, resume/replay, native interruption acknowledgements, and image generation are not implemented. The upstream can supply its own instructions and tools; general chat and client-provided tool behavior require a live compatibility check. This does not guarantee that every free account has access.
+## Validation and sources
 
-Sources inspected:
+Synthetic tests cover callback validation, Office login URLs, refresh persistence, credential isolation, WebSocket authentication, request adaptation, custom tool passthrough, and control frames. An earlier live test using the supplied access token completed a text response and model discovery. No captured account was imported and its refresh token was not consumed. Fresh interactive login, live refresh, and live custom-tool acceptance remain to be checked.
 
-- [PowerPoint extension](https://bps.openai.com/basispoints/extension/360590d7-f8f9-4d88-bf75-0edfe0a4b9f3/powerpoint/)
-- The extension's `auth-config-Dcnc8OAm.js` and `x-square-Bw2ZMIVV.js` assets, retrieved during implementation.
-- Local `dev-resources/bps.openai.com.har`; its credentials are not copied into source or fixtures.
-
-Local tests use synthetic credentials and cover callback rejection, the Office login URL, refresh and persistence across reload, identity separation, and WebSocket authentication/request adaptation/control-frame filtering. A live check with the captured access token also verified model discovery and a completed text response through the Go adapter. The capture was not imported as an account and its refresh token was not consumed. A fresh interactive sign-in and live refresh still need to be checked by the user.
+Sources: the public [PowerPoint extension](https://bps.openai.com/basispoints/extension/360590d7-f8f9-4d88-bf75-0edfe0a4b9f3/powerpoint/) assets and the local `dev-resources/bps.openai.com.har`. Captured credentials are excluded from source and public releases.

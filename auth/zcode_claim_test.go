@@ -114,3 +114,33 @@ func TestZcodeClaimDoesNotFollowRedirect(t *testing.T) {
 		t.Fatal("redirect accepted")
 	}
 }
+
+func TestZcodeFreshCaptchaPerPlanAndRejectedAttempt(t *testing.T) {
+	solved, posts := 0, 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/zcode-plan/billing/preview":
+			fmt.Fprint(w, `{"code":0,"data":{"plans":[{"plan_id":"one"},{"plan_id":"two"}]}}`)
+		case "/api/v1/zcode-plan/billing/claim":
+			posts++
+			if r.Header.Get("X-Aliyun-Captcha-Verify-Param") != fmt.Sprintf("fresh-%d", posts) || r.Header.Get("X-Aliyun-Captcha-Verify-Region") != "cn" {
+				t.Error("missing fresh verification")
+			}
+			if posts == 1 {
+				fmt.Fprint(w, `{"code":3007}`)
+			} else {
+				fmt.Fprint(w, `{"code":0}`)
+			}
+		default:
+			fmt.Fprint(w, `{"code":0,"data":{"balances":[]}}`)
+		}
+	}))
+	defer server.Close()
+	report, err := ClaimZcodeOfferedPlans(context.Background(), server.Client(), server.URL, "synthetic", "device", "", "", func(context.Context) (string, string, error) {
+		solved++
+		return fmt.Sprintf("fresh-%d", solved), "cn", nil
+	})
+	if err != nil || solved != 3 || posts != 3 || len(report.Plans) != 2 || report.Plans[0].Status != "claimed" || report.Plans[1].Status != "claimed" {
+		t.Fatalf("solved=%d posts=%d report=%+v err=%v", solved, posts, report, err)
+	}
+}

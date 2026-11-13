@@ -76,6 +76,8 @@ func usageChannelForAccount(account *auth.Account) string {
 	switch {
 	case account == nil:
 		return database.UpstreamChannelCodex
+	case account.IsZcode():
+		return database.UpstreamChannelZcode
 	case account.IsGrokAPI():
 		return database.UpstreamChannelGrok
 	case account.IsAntigravityAPI():

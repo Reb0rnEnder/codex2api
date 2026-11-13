@@ -28,6 +28,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { AccountGroup, AccountHealthBucket, AccountRow } from "../types";
 import AccountHealthBar from "./AccountHealthBar";
+import { BasisPointsAccountStatus } from "./BasisPointsAccountStatus";
 import ChannelLogo from "./ChannelLogo";
 import ModelLogo from "./ModelLogo";
 import StatusBadge from "./StatusBadge";
@@ -470,6 +471,7 @@ export default function AccountDetailSheet({
           </SheetHeader>
 
           <SheetBody className="space-y-5">
+            {account.basispoints && <BasisPointsAccountStatus key={account.id} account={account} />}
             <Section title={t("accounts.status")}>
               <div className="space-y-3 rounded-xl border border-border bg-card p-3">
                 <div className="flex flex-wrap items-center gap-2">

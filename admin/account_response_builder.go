@@ -240,6 +240,7 @@ func (h *Handler) buildAccountResponse(
 		AccessTokenType:              accountAccessTokenType(row),
 		OpenAIResponsesAPI:           isOpenAIResponsesAccount,
 		BasisPoints:                  row.GetCredential("basispoints") == "true",
+		BasisPointsAccessCheckedAt:   row.GetCredential("basispoints_access_checked_at"),
 		Zcode:                        row.GetCredential("zcode") == "true",
 		GrokAPI:                      isGrokAccount,
 		AntigravityAPI:               isAntigravityAccount,

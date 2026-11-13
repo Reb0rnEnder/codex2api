@@ -38,6 +38,8 @@ const (
 // NormalizeAccountGroupChannel 归一分组渠道,空/非法一律按 codex。
 func NormalizeAccountGroupChannel(channel string) string {
 	switch strings.ToLower(strings.TrimSpace(channel)) {
+	case "zcode":
+		return "zcode"
 	case AccountGroupChannelGrok:
 		return AccountGroupChannelGrok
 	case AccountGroupChannelAntigravity:

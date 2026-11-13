@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/codex2api/auth"
 	"github.com/codex2api/database"
+	"github.com/codex2api/internal/zcodecaptcha"
 	"github.com/codex2api/security"
 	"github.com/gin-gonic/gin"
 )
@@ -27,6 +29,24 @@ var zcodeLoginFlows = struct {
 	sync.Mutex
 	Flows map[string]*zcodeLoginFlow
 }{Flows: map[string]*zcodeLoginFlow{}}
+
+func (h *Handler) zcodeChannelModels() []string {
+	seen := map[string]bool{}
+	models := []string{}
+	for _, account := range h.store.Accounts() {
+		if !account.IsZcode() {
+			continue
+		}
+		for _, model := range account.CodexModels() {
+			if !seen[strings.ToLower(model)] {
+				seen[strings.ToLower(model)] = true
+				models = append(models, model)
+			}
+		}
+	}
+	sort.Strings(models)
+	return models
+}
 
 func zcodeJSON(ctx context.Context, method, endpoint, token, proxyURL, body string, result interface{}) error {
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, strings.NewReader(body))
@@ -196,14 +216,14 @@ func (h *Handler) ClaimZcodePlans(c *gin.Context) {
 		writeError(c, 400, "Invalid request")
 		return
 	}
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Minute)
 	defer cancel()
 	row, err := h.db.GetAccountByID(ctx, id)
 	if err != nil {
 		writeError(c, 404, "Account not found")
 		return
 	}
-	if row.GetCredential("zcode") != "true" || row.GetCredential("upstream_type") != auth.UpstreamClaude {
+	if row.GetCredential("zcode") != "true" || row.GetCredential("upstream_type") != auth.UpstreamZcode {
 		writeError(c, 400, "This account is not a Zcode account")
 		return
 	}
@@ -213,7 +233,10 @@ func (h *Handler) ClaimZcodePlans(c *gin.Context) {
 		return
 	}
 	proxyURL := h.resolveClaudeModelProxy(id, row.ProxyURL)
-	report, err := auth.ClaimZcodeOfferedPlans(ctx, auth.BuildUTLSHTTPClient(proxyURL), auth.ZcodeBaseURL, token, row.GetCredential("zcode_device_id"), input.CaptchaParam, input.CaptchaRegion)
+	client := auth.BuildUTLSHTTPClient(proxyURL)
+	report, err := auth.ClaimZcodeOfferedPlans(ctx, client, auth.ZcodeBaseURL, token, row.GetCredential("zcode_device_id"), input.CaptchaParam, input.CaptchaRegion, func(ctx context.Context) (string, string, error) {
+		return zcodecaptcha.Solve(ctx, client, auth.ZcodeBaseURL)
+	})
 	if err != nil {
 		writeError(c, 502, err.Error())
 		return
@@ -229,6 +252,7 @@ func (h *Handler) ClaimZcodePlans(c *gin.Context) {
 				acc.Mu().Unlock()
 			}
 			h.invalidateClaudeCatalogCaches()
+			h.expireAccountListSnapshot(database.UpstreamChannelZcode)
 		}
 	}
 	c.JSON(200, report)
@@ -256,10 +280,10 @@ func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL 
 	if err != nil {
 		return 0, err
 	}
-	credentials := map[string]interface{}{"upstream_type": auth.UpstreamClaude, "zcode": "true", "zcode_device_id": device, "access_token": token, "expires_at": expiry.UTC().Format(time.RFC3339), "claude_auth_kind": auth.ClaudeAuthKindAPIKey, "claude_base_url": auth.ZcodeBaseURL, "plan_type": quota.Plan, "models": quota.Models, "zcode_quota": string(quota.Balances)}
+	credentials := map[string]interface{}{"upstream_type": auth.UpstreamZcode, "zcode": "true", "zcode_device_id": device, "access_token": token, "expires_at": expiry.UTC().Format(time.RFC3339), "claude_auth_kind": auth.ClaudeAuthKindAPIKey, "claude_base_url": auth.ZcodeBaseURL, "plan_type": quota.Plan, "models": quota.Models, "zcode_quota": string(quota.Balances)}
 	h.mergeDuplicateMu.Lock()
 	defer h.mergeDuplicateMu.Unlock()
-	rows, listErr := h.db.ListActiveByChannel(ctx, database.UpstreamChannelClaude)
+	rows, listErr := h.db.ListActiveByChannel(ctx, database.UpstreamChannelZcode)
 	if listErr != nil {
 		return 0, fmt.Errorf("Unable to check existing Zcode accounts")
 	}
@@ -268,7 +292,7 @@ func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL 
 			return row.ID, nil
 		}
 	}
-	id, err := h.db.InsertAccountWithUpstream(ctx, name, "anthropic", auth.UpstreamClaude, credentials, proxyURL)
+	id, err := h.db.InsertAccountWithUpstream(ctx, name, "zcode", auth.UpstreamZcode, credentials, proxyURL)
 	if err != nil {
 		return 0, fmt.Errorf("Unable to save Zcode account")
 	}
@@ -277,6 +301,7 @@ func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL 
 	}
 	h.db.InsertAccountEventAsync(id, "added", "zcode")
 	h.invalidateClaudeCatalogCaches()
+	h.expireAccountListSnapshot(database.UpstreamChannelZcode)
 	return id, nil
 }
 

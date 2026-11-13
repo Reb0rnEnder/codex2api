@@ -16,6 +16,7 @@ import (
 )
 
 const ZcodeBaseURL = "https://zcode.z.ai"
+const UpstreamZcode = "zcode"
 const ZcodeVersion = "3.16.3"
 
 func (a *Account) IsZcode() bool {

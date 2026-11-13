@@ -5869,7 +5869,8 @@
         "codex": "This key only dispatches to Codex accounts; Grok, Antigravity, and Claude accounts are excluded.",
         "grok": "This key only dispatches to Grok accounts. Account mappings are applied first, then the request is sent only to accounts whose model list contains the target. An empty list uses the visible catalog, or the default model list before the first sync.",
         "antigravity": "This key only dispatches to Google Antigravity accounts and uses the Gemini catalog.",
-        "claude": "This key only dispatches to Claude accounts and uses the Claude model catalog."
+        "claude": "This key only dispatches to Claude accounts and uses the Claude model catalog.",
+        "zcode": "Independent Zcode account pool. Choose Zcode as the upstream channel when creating an API key. Requests use Zcode's GLM models through its Messages API."
       },
       "upstreamChannelAutoTab": "Auto",
       "sectionScope": "Group / account budgets",
@@ -5911,7 +5912,8 @@
       "scopeSkipStat": "skipped {{count}} request(s) because of this budget (last {{time}})",
       "scopeSelfLockWarning": "This is the only group this key may use - once the budget runs out there is nowhere to fall back to, which disables the key entirely.",
       "scopeBadgeExhausted": "budget exhausted {{count}}/{{total}}",
-      "scopeBadgeActive": "budget {{percent}}% ({{window}})"
+      "scopeBadgeActive": "budget {{percent}}% ({{window}})",
+      "upstreamChannelZcode": "Zcode"
     },
     "allowedGroupsLabel": "Allowed Account Groups",
     "allowedGroupsPlaceholder": "Choose allowed groups",
@@ -7432,7 +7434,10 @@
       "questionText": "Question text",
       "expectedAnswerRegularExpression": "Expected answer / regular expression",
       "durationThresholdMilliseconds": "Duration threshold (milliseconds)",
-      "noQuestionsYetAddAndEnableAt": "No questions yet. Add and enable at least one before enabling automatic checks."
+      "noQuestionsYetAddAndEnableAt": "No questions yet. Add and enable at least one before enabling automatic checks.",
+      "disableAutomaticChecksForListedAccounts": "Disable automatic checks for these {{count}} accounts",
+      "disableAutomaticChecksForListedAccounts_one": "Disable automatic checks for this account",
+      "disableAutomaticChecksForListedAccounts_other": "Disable automatic checks for these {{count}} accounts"
     },
     "promptFilterNewAPIBindings": {
       "selectTheCodex2APIKeyUsedForThis": "Select the Codex2API key used for this integration",
@@ -7726,15 +7731,19 @@
     "quotaRefreshFailed": "Claims finished, but billing could not be refreshed",
     "connectionFailed": "Connection or response error",
     "captchaOptions": "Provider verification (if requested)",
-    "captchaHint": "If Zcode requests verification, complete it in the official app. You can supply its verification parameter and region here, then retry. Verification parameters may be single-use; no challenge is solved automatically.",
+    "captchaHint": "The bundled Zcode2Api helper automatically obtains a fresh verification parameter for each claim and retries a rejected parameter once. Node.js 22.19+ must be available on the server. You can override it below with an official verification result; parameters may be single-use.",
     "captchaParam": "Verification parameter",
     "captchaRegion": "Verification region (optional)",
     "claimStatus": {
       "claimed": "Claimed",
       "already_claimed": "Already claimed",
       "captcha_required": "Complete verification in Zcode before retrying",
-      "failed": "Claim failed"
-    }
+      "failed": "Claim failed",
+      "solver_unavailable": "CAPTCHA solver unavailable or failed. Check Node.js 22.19+ on the server, or supply an official verification result."
+    },
+    "providerHint": "Independent Zcode account pool. Choose Zcode as the upstream channel when creating an API key. Requests use Zcode's GLM models through its Messages API.",
+    "noAccounts": "No Zcode accounts yet. Add an account to get started.",
+    "noModelAccess": "No model access yet. Claim the plans offered for this account."
   },
   "basispoints": {
     "intro": "Sign in with the ChatGPT login used by the PowerPoint extension. Requests use BasisPoints models and the login refreshes automatically.",
@@ -7744,19 +7753,26 @@
     "restart": "Restart sign-in",
     "start": "Start sign-in",
     "openSignIn": "Open ChatGPT sign-in",
-    "helperHint": "After signing in, keep the BasisPoints callback page open without reloading. Open its console (F12), paste the recovery script, and copy the URL from the prompt. The helper only reads this page's navigation entry and sends no requests.",
-    "copyConsole": "Copy console script",
-    "copyBookmark": "Copy bookmarklet",
-    "bookmarkHint": "For the bookmark method, create a bookmark and replace its URL with the copied bookmarklet. Run it on the callback page after signing in. The helper is tied to this sign-in session.",
-    "viewScript": "View the recovery script",
-    "networkFallback": "Network-tab fallback",
-    "networkHint": "Before signing in, open DevTools > Network and enable Preserve log. After sign-in, copy the full request URL for /auth/callback?code=...&state=... and paste it below. Use this if navigation recovery is unavailable.",
     "expiry": "Sign-in sessions expire after 30 minutes. Access tokens refresh automatically after the account is added.",
     "callback": "Callback URL",
     "add": "Add BasisPoints account",
-    "copyFailed": "Copy failed. Select and copy the script manually.",
     "startFailed": "Unable to start sign-in",
-    "finishFailed": "Unable to finish sign-in"
+    "finishFailed": "Unable to finish sign-in",
+    "officeWarning": "BasisPoints is an Office integration. Responses may include Office-specific instructions or tool context supplied by BPS. Office editing tools are not executed by this gateway.",
+    "signInStep": "Sign in with ChatGPT",
+    "callbackStep": "Paste the callback URL",
+    "callbackHint": "After signing in, ChatGPT may display \"Couldn't sign in, please try again\". If the address bar contains the BasisPoints callback with code and state, copy that full URL and paste it here. No bookmarklet, script, or DevTools is needed.",
+    "accountStatus": "BasisPoints subscription and access",
+    "plan": "Plan",
+    "access": "BPS access",
+    "confirmed": "Confirmed at last check",
+    "unknown": "Unknown",
+    "notProvided": "Not provided by BPS",
+    "subscriptionExpiry": "Subscription expiry",
+    "checked": "Last checked",
+    "modelAccess": "{{count}} models available from BPS",
+    "billingLimit": "Plan and access come from BPS. Renewal, cancellation, and quota details are shown only when supplied by the service; Codex usage is not used for these accounts.",
+    "accessRefreshFailed": "Unable to refresh BasisPoints access."
   },
   "intelligenceLabels": {
     "queued": "Queued",

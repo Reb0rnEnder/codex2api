@@ -6,6 +6,7 @@ import { Badge } from './ui/badge'
 
 const CHANNEL_NAMES: Record<UpstreamChannel, string> = {
   codex: 'Codex',
+  zcode: 'Zcode',
   grok: 'Grok',
   antigravity: 'Antigravity',
   claude: 'Claude',

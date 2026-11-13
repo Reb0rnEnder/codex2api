@@ -347,8 +347,10 @@
         "codex": "此 Key 只調度 Codex 帳號，不會使用其他渠道帳號。",
         "grok": "此 Key 只調度 Grok 帳號，並使用該渠道的模型目錄。",
         "antigravity": "此 Key 只調度 Google Antigravity 帳號，並使用 Gemini 模型目錄。",
-        "claude": "此 Key 只調度 Claude 帳號，並使用 Claude 模型目錄。"
-      }
+        "claude": "此 Key 只調度 Claude 帳號，並使用 Claude 模型目錄。",
+        "zcode": "獨立的 Zcode 帳號池。建立 API Key 時請選擇 Zcode 上游渠道。請求透過 Zcode 的 Messages API 使用其 GLM 模型。"
+      },
+      "upstreamChannelZcode": "Zcode"
     }
   },
   "accounts": {
@@ -2367,7 +2369,8 @@
       "questionText": "题目正文",
       "expectedAnswerRegularExpression": "预期答案 / 正则",
       "durationThresholdMilliseconds": "耗时阈值（毫秒）",
-      "noQuestionsYetAddAndEnableAt": "暂无题目，开启自动检测前请添加并启用至少一道题。"
+      "noQuestionsYetAddAndEnableAt": "暂无题目，开启自动检测前请添加并启用至少一道题。",
+      "disableAutomaticChecksForListedAccounts": "關閉以上 {{count}} 個帳號的自動檢測"
     },
     "promptFilterNewAPIBindings": {
       "selectTheCodex2APIKeyUsedForThis": "选择用于接入的 Codex2API Key",
@@ -2661,15 +2664,19 @@
     "quotaRefreshFailed": "領取已結束，但無法更新計費資訊",
     "connectionFailed": "連線或回應錯誤",
     "captchaOptions": "服務商驗證（如有要求）",
-    "captchaHint": "如果 Zcode 要求驗證，請在官方應用程式中完成。可在此填寫驗證參數和區域後重試。驗證參數可能僅限使用一次；不會自動解決驗證。",
+    "captchaHint": "內建的 Zcode2Api 驗證助手會為每次領取取得新的驗證參數，並在參數被拒絕後重試一次。伺服器需安裝 Node.js 22.19+。也可在下方填寫官方驗證結果；參數可能僅限使用一次。",
     "captchaParam": "驗證參數",
     "captchaRegion": "驗證區域（選填）",
     "claimStatus": {
       "claimed": "已領取",
       "already_claimed": "已領取過",
       "captcha_required": "請先在 Zcode 完成驗證再重試",
-      "failed": "領取失敗"
-    }
+      "failed": "領取失敗",
+      "solver_unavailable": "驗證助手不可用或失敗。請檢查伺服器的 Node.js 22.19+，或提供官方驗證結果。"
+    },
+    "providerHint": "獨立的 Zcode 帳號池。建立 API Key 時請選擇 Zcode 上游渠道。請求透過 Zcode 的 Messages API 使用其 GLM 模型。",
+    "noAccounts": "尚無 Zcode 帳號，請先新增帳號。",
+    "noModelAccess": "尚無模型權限，請領取此帳號可用的方案。"
   },
   "basispoints": {
     "intro": "使用 PowerPoint 扩展的 ChatGPT 登录方式。请求通过 BasisPoints 模型发送，登录凭证自动刷新。",
@@ -2679,19 +2686,26 @@
     "restart": "重新登录",
     "start": "开始登录",
     "openSignIn": "打开 ChatGPT 登录",
-    "helperHint": "登录后保持 BasisPoints 回调页打开，不要刷新。打开控制台（F12），粘贴恢复脚本，从弹窗复制 URL。脚本仅读取当前页面导航记录，不发送网络请求。",
-    "copyConsole": "复制控制台脚本",
-    "copyBookmark": "复制书签脚本",
-    "bookmarkHint": "书签方式：新建书签，将网址替换为复制的书签脚本。登录后在回调页点击该书签。脚本仅适用于本次登录。",
-    "viewScript": "查看恢复脚本",
-    "networkFallback": "备用：网络面板方式",
-    "networkHint": "登录前打开开发者工具的 Network 面板并启用 Preserve log。登录后复制 /auth/callback?code=…&state=… 的完整请求 URL，在下方粘贴。导航恢复不可用时使用此方法。",
     "expiry": "登录会话 30 分钟后过期。添加账号后访问令牌会自动刷新。",
     "callback": "回调 URL",
     "add": "添加 BasisPoints 账号",
-    "copyFailed": "复制失败，请手动选择并复制脚本。",
     "startFailed": "无法开始登录",
-    "finishFailed": "无法完成登录"
+    "finishFailed": "无法完成登录",
+    "officeWarning": "BasisPoints 是 Office 整合，回覆可能包含 BPS 提供的 Office 專用指令或工具上下文。此閘道不會執行 Office 編輯工具。",
+    "signInStep": "使用 ChatGPT 登入",
+    "callbackStep": "貼上回呼連結",
+    "callbackHint": "登入後，ChatGPT 可能顯示「無法登入，請重試」。如果網址列仍包含帶 code 和 state 的 BasisPoints 回呼連結，複製完整連結並貼至此處。無需書籤、指令碼或開發人員工具。",
+    "accountStatus": "BasisPoints 訂閱與存取權限",
+    "plan": "方案",
+    "access": "BPS 存取權限",
+    "confirmed": "上次檢查已確認",
+    "unknown": "未知",
+    "notProvided": "BPS 未提供",
+    "subscriptionExpiry": "訂閱到期時間",
+    "checked": "上次檢查",
+    "modelAccess": "BPS 提供 {{count}} 個可用模型",
+    "billingLimit": "方案與存取權限來自 BPS。僅顯示服務提供的續費、取消及配額資訊；此類帳號不使用 Codex 用量。",
+    "accessRefreshFailed": "無法更新 BasisPoints 存取權限。"
   },
   "intelligenceLabels": {
     "queued": "等待执行",

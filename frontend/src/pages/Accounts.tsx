@@ -1,5 +1,6 @@
 import uiI18n from "../i18n";
 import { useIntelligenceBars } from "../hooks/useIntelligenceBars";
+import { BasisPointsIcon } from "../components/BasisPointsIcon";
 import { BasisPointsAddForm } from "../components/BasisPointsAddForm";
 import AccountIntelligenceBar, { AccountIntelligenceActions } from "../components/AccountIntelligenceBar";
 import type { IntelligenceBar } from "../lib/intelligenceCheck";
@@ -38,6 +39,7 @@ import {
 import GrokAccounts from "./GrokAccounts";
 import AntigravityAccounts from "./AntigravityAccounts";
 import ClaudeAccounts from "./ClaudeAccounts";
+import ZcodeAccounts from "./ZcodeAccounts";
 import { mergeAccountLiveState, useAccountLiveState } from "../hooks/useAccountLiveState";
 import PageHeader from "../components/PageHeader";
 import {
@@ -1289,7 +1291,7 @@ const AccountTableRow = memo(function AccountTableRow({
                               <TableCell className="min-w-[220px] whitespace-normal text-[14px] text-muted-foreground">
                                 <div className="flex min-w-0 items-center gap-2.5">
                                 <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card ring-1 ring-border shadow-sm">
-                                  {account.basispoints ? <span className="text-xs font-bold">BPS</span> : account.openai_responses_api ? (
+                                  {account.basispoints ? <BasisPointsIcon className="size-5 text-primary" /> : account.openai_responses_api ? (
                                     <ModelLogo model="openai" variant="plain" size={17} />
                                   ) : (
                                     <ChannelLogo channel="codex" size={32} className="rounded-lg" />
@@ -1843,7 +1845,7 @@ export default function Accounts() {
       ? "antigravity"
       : normalizedPath.endsWith("/accounts/claude")
         ? "claude"
-        : "codex";
+        : normalizedPath.endsWith("/accounts/zcode") ? "zcode" : "codex";
   const { channels: visibleChannels, isChannelVisible } = useVisibleChannels();
   // 设置页隐藏了某个渠道后，直接打开它的账号路由要回落到 Codex 视图。
   useEffect(() => {
@@ -1858,7 +1860,7 @@ export default function Accounts() {
             ? "/accounts/antigravity"
             : view === "claude"
               ? "/accounts/claude"
-              : "/accounts",
+              : view === "zcode" ? "/accounts/zcode" : "/accounts",
       );
     },
     [navigate],
@@ -6322,6 +6324,7 @@ export default function Accounts() {
           ["grok", t("accounts.providerViewGrok")],
           ["antigravity", t("accounts.providerViewAntigravity")],
           ["claude", t("accounts.providerViewClaude")],
+          ["zcode", "Zcode"],
         ] as const
       ).filter(([key]) => visibleChannels.includes(key)),
     [t, visibleChannels],
@@ -6403,6 +6406,8 @@ export default function Accounts() {
       </div>
     );
   }
+
+  if (providerView === "zcode") return <ZcodeAccounts headerSlot={providerSwitcher} />;
 
   if (providerView === "claude") {
     return (
@@ -8115,10 +8120,6 @@ export default function Accounts() {
           >
             {/* Tab switcher */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 mb-5 rounded-xl bg-muted/50 border border-border">
-              <button type="button" onClick={() => setAddMethod("basispoints")}
-                className={`rounded-lg px-2 py-2 text-sm font-semibold ${addMethod === "basispoints" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                ChatGPT BasisPoints
-              </button>
               <button
                 onClick={() => {
                   setAddMethod("oauth");
@@ -8200,6 +8201,11 @@ export default function Accounts() {
               >
                 <Fingerprint className="size-3.5" />
                 {t("accounts.addMethodAgentIdentity")}
+              </button>
+              <button type="button" onClick={() => setAddMethod("basispoints")}
+                className={`min-w-0 flex-1 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-semibold whitespace-nowrap transition-all ${addMethod === "basispoints" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                <BasisPointsIcon className="size-3.5" />
+                BasisPoints
               </button>
             </div>
 

@@ -43,11 +43,14 @@ jobs:
           npm run build
 
       - name: Build release assets
+        # The Go embed includes the verification helper and its locked dependencies.
+        # Node itself remains an external runtime, as in Zcode2Api.
         shell: bash
         run: |
           set -euo pipefail
 
           version="${VERSION#v}"
+          npm ci --prefix internal/zcodecaptcha/assets --ignore-scripts --no-audit --no-fund
           mkdir -p dist build
 
           build_target() {

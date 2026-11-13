@@ -39,7 +39,7 @@ const (
 
 // isClaudeOAuthLocked 判断账号是否为 Claude Code OAuth 账号。调用方需持有 a.mu。
 func (a *Account) isClaudeOAuthLocked() bool {
-	return strings.EqualFold(strings.TrimSpace(a.UpstreamType), UpstreamClaude)
+	return strings.EqualFold(strings.TrimSpace(a.UpstreamType), UpstreamClaude) || strings.EqualFold(strings.TrimSpace(a.UpstreamType), UpstreamZcode)
 }
 
 // IsClaudeOAuth 是历史命名的 Claude 渠道判定,也包括 Setup Token 和 API Key。

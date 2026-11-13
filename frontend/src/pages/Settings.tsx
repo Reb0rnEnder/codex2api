@@ -2338,6 +2338,7 @@ function SettingsSectionIndex({
 
 const VISIBLE_CHANNEL_LABELS: Record<UpstreamChannel, string> = {
   codex: 'Codex',
+  zcode: 'Zcode',
   claude: 'Claude',
   antigravity: 'Antigravity',
   grok: 'Grok',

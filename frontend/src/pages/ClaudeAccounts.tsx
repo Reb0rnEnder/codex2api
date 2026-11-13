@@ -1,6 +1,4 @@
 import { useIntelligenceBars } from "../hooks/useIntelligenceBars";
-import { ZcodeAddForm } from "../components/ZcodeAddForm";
-import { ZcodeClaimDialog } from "../components/ZcodeClaimDialog";
 import AccountIntelligenceBar, { AccountIntelligenceActions } from "../components/AccountIntelligenceBar";
 import type { IntelligenceBar } from "../lib/intelligenceCheck";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -2039,10 +2037,7 @@ export default function ClaudeAccounts({ headerSlot }: { headerSlot?: ReactNode 
                       onResetStatus={() => void handleResetStatus(acc)}
                       onAssignGroups={() => setAssignTarget(acc)}
                       onUsage={() => setUsageTarget(acc)}
-                      onUsageRefreshed={async () => {
-                        if (acc.zcode) { await refreshOpenDetail(acc.id); await reload(); }
-                        else await handleRefreshUsage(acc);
-                      }}
+                      onUsageRefreshed={() => handleRefreshUsage(acc)}
                       onOpenDetail={() => void openDetail(acc)}
                       onTest={() => setTestingTarget(acc)}
                       onEdit={() => setEditTarget(acc)}
@@ -2326,7 +2321,6 @@ function ClaudeAccountRow({
 }) {
   const { t } = useTranslation();
   const isAPIKey = acc.claude_auth_kind === "api_key";
-  const [claimOpen, setClaimOpen] = useState(false);
   const pct5h = claudeUsagePct(acc.usage_percent_5h);
   const pct7d = claudeUsagePct(acc.usage_percent_7d);
   const disabled = acc.enabled === false;
@@ -2346,7 +2340,6 @@ function ClaudeAccountRow({
     (acc.claude_usage_windows ?? []).some((window) => window.model_scoped);
 
   const rowMenuItems: HeaderActionMenuItem[] = [
-    ...(acc.zcode ? [{ key: "zcode-claim", label: t("zcode.claimPlans"), icon: <Plus className="size-3.5" />, onSelect: () => setClaimOpen(true) }] : []),
     { key: "edit", label: t("claude.editTitle"), icon: <Pencil className="size-3.5" />, onSelect: onEdit },
     { key: "usage", label: t("accounts.usageDetail"), icon: <BarChart3 className="size-3.5" />, onSelect: onUsage },
     { key: "test", label: t("accounts.testConnection"), icon: <Zap className="size-3.5" />, onSelect: onTest },
@@ -2397,7 +2390,7 @@ function ClaudeAccountRow({
   ];
 
   return (
-    <><TableRow
+    <TableRow
       data-state={selected ? "selected" : undefined}
       className={cn(
         "cursor-pointer",
@@ -2494,7 +2487,7 @@ function ClaudeAccountRow({
                     {t("claude.modelCount", { count: acc.models.length })}
                   </button>
                 ) : null}
-                {isAPIKey ? <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">{acc.zcode ? "Zcode" : t("claude.authKindAPIKey")}</span> : null}
+                {isAPIKey ? <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">{t("claude.authKindAPIKey")}</span> : null}
                 {/* 凭据形态徽章:长效 Setup Token 与模型数并排,和套餐列分离 */}
                 {acc.claude_auth_kind === "setup_token" ? (
                   <span
@@ -2642,8 +2635,6 @@ function ClaudeAccountRow({
         </div>
       </TableCell>
     </TableRow>
-    {claimOpen && <ZcodeClaimDialog id={acc.id} name={acc.name || `#${acc.id}`} onClose={() => setClaimOpen(false)} onChanged={onUsageRefreshed} />}
-    </>
   );
 }
 
@@ -3529,7 +3520,7 @@ function ClaudeModelsModal({
 }
 
 // ── 添加账号弹窗:网页授权(OAuth / Setup Token) / 粘贴 Setup Token / sessionKey 登录 / 导入凭据 JSON ──────
-type ClaudeAddTab = "oauth" | "setup_token" | "api_key" | "cookie" | "import" | "zcode";
+type ClaudeAddTab = "oauth" | "setup_token" | "api_key" | "cookie" | "import";
 type ClaudeAuthMode = "oauth" | "setup_token";
 
 function ClaudeAddModal({
@@ -3920,7 +3911,6 @@ function ClaudeAddModal({
 
   const submitButton = (() => {
     switch (tab) {
-      case "zcode": return null;
       case "oauth":
         return (
           <Button onClick={() => void submitOAuth()} disabled={submitting || !authUrl}>
@@ -3952,7 +3942,6 @@ function ClaudeAddModal({
   })();
 
   const tabs: Array<{ id: ClaudeAddTab; label: string }> = [
-    { id: "zcode", label: "Zcode" },
     { id: "oauth", label: t("claude.tabOAuth") },
     { id: "setup_token", label: t("claude.tabSetupToken") },
     { id: "api_key", label: t("claude.authKindAPIKey") },
@@ -3984,7 +3973,6 @@ function ClaudeAddModal({
           ))}
         </div>
 
-        {tab === "zcode" ? <ZcodeAddForm onAdded={onAdded} /> : null}
         {tab === "oauth" ? (
           <div className="space-y-3">
             {authModeSwitch}

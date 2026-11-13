@@ -434,7 +434,7 @@ export default function IntelligenceCheck() {
                     variant="outline"
                     disabled={busy}
                     onClick={() => void disableConflicts()}
-                  >{uiI18n.t("uiExtra.intelligenceCheck.disableAutomaticChecksForThese")}{targetConflict.conflicts.length}{" "}{uiI18n.t("uiExtra.intelligenceCheck.accounts")}</Button>
+                  >{uiI18n.t("uiExtra.intelligenceCheck.disableAutomaticChecksForListedAccounts", { count: targetConflict.conflicts.length })}</Button>
                   <p className="text-xs text-muted-foreground">{uiI18n.t("uiExtra.intelligenceCheck.onlyAutomaticChecksAreDisabledRequestScheduling")}</p>
                 </div>
               )}

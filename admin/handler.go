@@ -1031,6 +1031,8 @@ func (h *Handler) getUsageStatsSummaryFilteredCached(ctx context.Context, rangeS
 // parseUsageChannel 解析 query 里的账号/用量渠道过滤参数。
 func parseUsageChannel(c *gin.Context) string {
 	switch strings.ToLower(strings.TrimSpace(c.Query("channel"))) {
+	case database.UpstreamChannelZcode:
+		return database.UpstreamChannelZcode
 	case database.UpstreamChannelCodex:
 		return database.UpstreamChannelCodex
 	case database.UpstreamChannelGrok:
@@ -1163,6 +1165,7 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 	api.POST("/accounts/codex/agent-identity/import", h.BatchImportCodexAgentIdentity)
 	api.POST("/accounts/openai-responses", h.AddOpenAIResponsesAccount)
 	api.POST("/accounts/basispoints/oauth/start", h.StartBasisPointsOAuth)
+	api.POST("/accounts/:id/basispoints/access", h.RefreshBasisPointsAccess)
 	api.POST("/accounts/zcode", h.AddZcodeAccount)
 	api.POST("/accounts/:id/zcode/claim", h.ClaimZcodePlans)
 	api.POST("/accounts/zcode/login/start", h.StartZcodeLogin)
@@ -1612,7 +1615,9 @@ func summarizeDashboardAccounts(rows []*database.AccountRow, runtimeAccounts []*
 		cooldownReason := strings.ToLower(strings.TrimSpace(row.CooldownReason))
 		channel := database.UpstreamChannelCodex
 		upstreamType := strings.TrimSpace(row.GetCredential("upstream_type"))
-		if strings.EqualFold(upstreamType, auth.UpstreamGrok) {
+		if strings.EqualFold(upstreamType, auth.UpstreamZcode) {
+			channel = database.UpstreamChannelZcode
+		} else if strings.EqualFold(upstreamType, auth.UpstreamGrok) {
 			channel = database.UpstreamChannelGrok
 		} else if strings.EqualFold(upstreamType, auth.UpstreamAntigravity) {
 			channel = database.UpstreamChannelAntigravity
@@ -1629,7 +1634,9 @@ func summarizeDashboardAccounts(rows []*database.AccountRow, runtimeAccounts []*
 			cooldownReason = ""
 			// 积分顶替限流：状态仍报限流（窗口客观打满），但账号照常参与调度，按可用计。
 			usingCredits = acc.UsingCredits()
-			if acc.IsGrokAPI() {
+			if acc.IsZcode() {
+				channel = database.UpstreamChannelZcode
+			} else if acc.IsGrokAPI() {
 				channel = database.UpstreamChannelGrok
 			} else if acc.IsClaudeOAuth() {
 				channel = database.UpstreamChannelClaude
@@ -1747,6 +1754,7 @@ type accountResponse struct {
 	AccessTokenType               string                      `json:"access_token_type,omitempty"`
 	OpenAIResponsesAPI            bool                        `json:"openai_responses_api,omitempty"`
 	BasisPoints                   bool                        `json:"basispoints,omitempty"`
+	BasisPointsAccessCheckedAt    string                      `json:"basispoints_access_checked_at,omitempty"`
 	Zcode                         bool                        `json:"zcode,omitempty"`
 	GrokAPI                       bool                        `json:"grok_api,omitempty"`
 	AntigravityAPI                bool                        `json:"antigravity_api,omitempty"`
@@ -6473,7 +6481,7 @@ type batchUpdateAccountsReq struct {
 
 func (h *Handler) accountOperationIdentity(id int64) (string, string) {
 	h.accountListCacheMu.RLock()
-	for _, channel := range []string{database.UpstreamChannelCodex, database.UpstreamChannelGrok, database.UpstreamChannelAntigravity, database.UpstreamChannelClaude} {
+	for _, channel := range []string{database.UpstreamChannelCodex, database.UpstreamChannelGrok, database.UpstreamChannelAntigravity, database.UpstreamChannelClaude, database.UpstreamChannelZcode} {
 		snapshot := h.accountListCache[channel]
 		if snapshot == nil {
 			continue
@@ -13036,6 +13044,7 @@ func (h *Handler) ListModels(c *gin.Context) {
 	// Keep claudeChannelModels for pricing/history, where those entries remain
 	// useful to operators.
 	catalog.ClaudeModels = h.claudeAvailableChannelModels()
+	catalog.ZcodeModels = h.zcodeChannelModels()
 	c.JSON(http.StatusOK, catalog)
 }
 

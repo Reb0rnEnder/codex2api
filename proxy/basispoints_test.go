@@ -77,3 +77,23 @@ func TestBasisPointsWebsocketStream(t *testing.T) {
 		t.Fatal("incorrect Responses stream")
 	}
 }
+
+func TestBasisPointsPreservesCustomToolsAndCallerInstructions(t *testing.T) {
+	request := []byte(`{"model":"test-model","instructions":"Only my application instructions","tools":[{"type":"function","name":"lookup_widget","description":"Find a widget","parameters":{"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}}],"tool_choice":{"type":"function","name":"lookup_widget"},"input":[{"type":"function_call","call_id":"call_test","name":"lookup_widget","arguments":"{\"id\":\"1\"}"},{"type":"function_call_output","call_id":"call_test","output":"widget found"},{"role":"user","content":"continue"}]}`)
+	_, _, body, err := prepareBasisPointsWebsocket("https://bps.openai.com/basispoints/api", "synthetic", request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"instructions", "tools", "tool_choice", "input.0", "input.1"} {
+		if gjson.GetBytes(body, key).Raw != gjson.GetBytes(request, key).Raw {
+			t.Fatalf("changed caller field %s", key)
+		}
+	}
+	if gjson.GetBytes(body, "input.#").Int() != 3 {
+		t.Fatal("unexpected Office instruction or tool message injected")
+	}
+	_, _, plain, err := prepareBasisPointsWebsocket("https://bps.openai.com/basispoints/api", "synthetic", []byte(`{"model":"test-model","input":"hello"}`))
+	if err != nil || gjson.GetBytes(plain, "instructions").Exists() || gjson.GetBytes(plain, "tools").Exists() {
+		t.Fatal("default Office prompt/tools injected")
+	}
+}

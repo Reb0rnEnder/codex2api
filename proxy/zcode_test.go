@@ -30,7 +30,7 @@ func TestZcodeNativeAndOpenAIHandlers(t *testing.T) {
 				defer db.Close()
 				store := auth.NewStore(db, nil, &database.SystemSettings{MaxConcurrency: 2, MaxRetries: 0})
 				defer store.Stop()
-				a := &auth.Account{DBID: 994812, Zcode: true, ZcodeDeviceID: "test-device", UpstreamType: auth.UpstreamClaude, ClaudeAuthKind: auth.ClaudeAuthKindAPIKey, AccessToken: "test-jwt", ExpiresAt: time.Now().Add(time.Hour), Models: []string{"GLM-5.3"}, Status: auth.StatusReady}
+				a := &auth.Account{DBID: 994812, Zcode: true, ZcodeDeviceID: "test-device", UpstreamType: auth.UpstreamZcode, ClaudeAuthKind: auth.ClaudeAuthKindAPIKey, AccessToken: "test-jwt", ExpiresAt: time.Now().Add(time.Hour), Models: []string{"GLM-5.3"}, Status: auth.StatusReady}
 				store.AddAccount(a)
 				calls := 0
 				installClaudeBoundaryTransport(t, a, func(r *http.Request) (*http.Response, error) {
@@ -61,6 +61,7 @@ func TestZcodeNativeAndOpenAIHandlers(t *testing.T) {
 				recorder := httptest.NewRecorder()
 				c, _ := gin.CreateTestContext(recorder)
 				c.Request = httptest.NewRequest(http.MethodPost, "/v1/"+protocol, strings.NewReader(body))
+				c.Set(contextAPIKeyRow, &database.APIKeyRow{Limits: database.APIKeyLimits{UpstreamChannel: database.UpstreamChannelZcode}})
 				switch protocol {
 				case "messages":
 					h.Messages(c)
@@ -78,11 +79,11 @@ func TestZcodeNativeAndOpenAIHandlers(t *testing.T) {
 }
 
 func TestZcodeModelIsolationAndBody(t *testing.T) {
-	a := &auth.Account{Zcode: true, UpstreamType: auth.UpstreamClaude, Models: []string{"GLM-5.3"}}
+	a := &auth.Account{Zcode: true, UpstreamType: auth.UpstreamZcode, Models: []string{"GLM-5.3"}}
 	if !claudeAccountSupportsModel(a, "glm-5.3") || claudeAccountSupportsModel(a, "claude-sonnet-4-5") {
 		t.Fatal("Zcode model isolation failed")
 	}
-	if claudeAccountSupportsModel(&auth.Account{UpstreamType: auth.UpstreamClaude}, "GLM-5.3") {
+	if claudeAccountSupportsModel(&auth.Account{UpstreamType: auth.UpstreamZcode}, "GLM-5.3") {
 		t.Fatal("GLM routed to Anthropic")
 	}
 	body, err := prepareZcodeBody([]byte(`{"model":"GLM-5.3","system":"Client rules","max_tokens":200000,"messages":[{"role":"user","content":"hello"}],"thinking":{"type":"adaptive"},"output_config":{"effort":"xhigh"}}`), "device")
@@ -98,9 +99,26 @@ func TestZcodeModelIsolationAndBody(t *testing.T) {
 	}
 }
 
+func TestZcodeAPIKeyChannelIsIndependent(t *testing.T) {
+	zcode := &auth.Account{Zcode: true, UpstreamType: auth.UpstreamZcode, Models: []string{"GLM-5.3"}}
+	claude := &auth.Account{UpstreamType: auth.UpstreamClaude, Models: []string{"claude-sonnet-4-5"}}
+	h := &Handler{}
+	for _, channel := range []string{database.UpstreamChannelZcode, database.UpstreamChannelClaude, database.UpstreamChannelCodex} {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set(contextAPIKeyRow, &database.APIKeyRow{Limits: database.APIKeyLimits{UpstreamChannel: channel}})
+		filter := h.applyUpstreamChannelFilter(c, "GLM-5.3", nil)
+		if filter(zcode) != (channel == database.UpstreamChannelZcode) {
+			t.Fatalf("Zcode accepted by wrong channel: %s", channel)
+		}
+		if channel == database.UpstreamChannelZcode && filter(claude) {
+			t.Fatal("Zcode channel accepted Claude")
+		}
+	}
+}
+
 func TestZcodeResponsesAdapterNonStream(t *testing.T) {
 	t.Setenv("CODEX_TRANSPORT_MODE", "standard")
-	a := &auth.Account{DBID: 994815, Zcode: true, UpstreamType: auth.UpstreamClaude, AccessToken: "test", Models: []string{"GLM-5.3"}}
+	a := &auth.Account{DBID: 994815, Zcode: true, UpstreamType: auth.UpstreamZcode, AccessToken: "test", Models: []string{"GLM-5.3"}}
 	installClaudeBoundaryTransport(t, a, func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": {"text/event-stream"}}, Body: io.NopCloser(strings.NewReader(strings.ReplaceAll(claudeAPIKeyTestStream, "claude-sonnet-4-5", "GLM-5.3")))}, nil
 	})

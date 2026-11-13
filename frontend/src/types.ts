@@ -1,6 +1,6 @@
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 export type ISODateString = string
-export type UpstreamChannel = 'codex' | 'grok' | 'antigravity' | 'claude'
+export type UpstreamChannel = 'codex' | 'grok' | 'antigravity' | 'claude' | 'zcode'
 
 export type ChannelMonitorStatus = 'unknown' | 'operational' | 'degraded' | 'failed'
 export type ChannelMonitorBillingStatus = 'unknown' | 'ok' | 'unsupported' | 'failed'
@@ -408,6 +408,7 @@ export interface AccountRow {
   account_type?: string
   openai_responses_api?: boolean
   basispoints?: boolean
+  basispoints_access_checked_at?: string
   zcode?: boolean
   grok_api?: boolean
   antigravity_api?: boolean

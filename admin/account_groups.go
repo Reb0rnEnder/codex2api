@@ -471,6 +471,9 @@ func dedupeInt64(ids []int64) []int64 {
 
 // accountRowGroupChannel 返回账号所属的分组渠道。
 func accountRowGroupChannel(row *database.AccountRow) string {
+	if row != nil && strings.EqualFold(strings.TrimSpace(row.GetCredential("upstream_type")), auth.UpstreamZcode) {
+		return database.UpstreamChannelZcode
+	}
 	if row != nil && strings.EqualFold(strings.TrimSpace(row.GetCredential("upstream_type")), auth.UpstreamAntigravity) {
 		return database.AccountGroupChannelAntigravity
 	}
@@ -520,6 +523,8 @@ func (h *Handler) validateGroupChannelForRows(ctx context.Context, rows []*datab
 
 func groupChannelDisplayName(channel string) string {
 	switch channel {
+	case database.UpstreamChannelZcode:
+		return "Zcode"
 	case database.AccountGroupChannelGrok:
 		return "Grok"
 	case database.AccountGroupChannelAntigravity:

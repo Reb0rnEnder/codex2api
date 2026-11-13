@@ -6199,7 +6199,7 @@ func (s *Store) buildAccountFromRow(ctx context.Context, row *database.AccountRo
 	claudeFingerprintMode := NormalizeClaudeFingerprintMode(row.GetCredential(ClaudeFingerprintModeCredentialKey))
 	accountTimezone := NormalizeAccountTimezone(row.GetCredential(AccountTimezoneCredentialKey))
 	var claudeClientPlatformOverride, claudeVersionPolicyOverride, claudeClientVersionOverride, claudeAuthKind string
-	if strings.EqualFold(strings.TrimSpace(upstreamType), UpstreamClaude) {
+	if strings.EqualFold(strings.TrimSpace(upstreamType), UpstreamClaude) || strings.EqualFold(strings.TrimSpace(upstreamType), UpstreamZcode) {
 		claudeClientPlatformOverride = strings.ToLower(strings.TrimSpace(row.GetCredential(ClaudeClientPlatformCredentialKey)))
 		claudeVersionPolicyOverride = strings.ToLower(strings.TrimSpace(row.GetCredential(ClaudeVersionPolicyCredentialKey)))
 		claudeClientVersionOverride = strings.TrimSpace(row.GetCredential(ClaudeClientVersionCredentialKey))
@@ -6259,7 +6259,7 @@ func (s *Store) buildAccountFromRow(ctx context.Context, row *database.AccountRo
 		account.CodexClientMetadataMode = CodexClientMetadataModeOff
 		account.ResponsesUpstreamTransport = OpenAIResponsesTransportWebsocket
 	}
-	if strings.EqualFold(strings.TrimSpace(upstreamType), UpstreamClaude) {
+	if strings.EqualFold(strings.TrimSpace(upstreamType), UpstreamClaude) || strings.EqualFold(strings.TrimSpace(upstreamType), UpstreamZcode) {
 		if observedRaw := strings.TrimSpace(row.GetCredential(ClaudeUsageProbeAtCredentialKey)); observedRaw != "" {
 			if observedAt, parseErr := time.Parse(time.RFC3339, observedRaw); parseErr == nil {
 				// This is only a freshness hint; quota validity remains false until
@@ -10234,7 +10234,7 @@ func (s *Store) SetAPIKeyUpstreamChannel(apiKeyID int64, channel string) {
 		return
 	}
 	channel = strings.ToLower(strings.TrimSpace(channel))
-	if channel != database.UpstreamChannelCodex && channel != database.UpstreamChannelGrok && channel != database.UpstreamChannelAntigravity && channel != database.UpstreamChannelClaude {
+	if channel != database.UpstreamChannelCodex && channel != database.UpstreamChannelGrok && channel != database.UpstreamChannelAntigravity && channel != database.UpstreamChannelClaude && channel != database.UpstreamChannelZcode {
 		channel = ""
 	}
 	s.apiKeyGroupsMu.Lock()
@@ -10331,8 +10331,12 @@ func (s *Store) APIKeyAllowsAccount(apiKeyID int64, acc *Account) bool {
 		if !acc.IsAntigravityAPI() {
 			return false
 		}
+	case database.UpstreamChannelZcode:
+		if !acc.IsZcode() {
+			return false
+		}
 	case database.UpstreamChannelClaude:
-		if !acc.IsClaudeOAuth() {
+		if !acc.IsClaudeOAuth() || acc.IsZcode() {
 			return false
 		}
 	}

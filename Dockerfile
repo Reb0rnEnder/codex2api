@@ -4,7 +4,7 @@
 # Stage 1: 构建前端 (React + Vite)
 # 前端产物是纯静态文件，只需构建一次，与目标平台无关
 # ============================================================
-FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-builder
 
 ARG BUILD_VERSION=dev
 
@@ -14,6 +14,8 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 COPY frontend/ .
 RUN VITE_APP_VERSION=${BUILD_VERSION} npm run build
+COPY internal/zcodecaptcha/assets/ /zcode-captcha/
+RUN npm ci --prefix /zcode-captcha --ignore-scripts --no-audit --no-fund
 
 # ============================================================
 # Stage 2: 构建 Go 后端
@@ -34,6 +36,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 COPY . .
 COPY --from=frontend-builder /frontend/dist ./frontend/dist
+COPY --from=frontend-builder /zcode-captcha/node_modules ./internal/zcodecaptcha/assets/node_modules
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
@@ -42,7 +45,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # ============================================================
 # Stage 3: 最终运行镜像
 # ============================================================
-FROM alpine:3.19
+FROM node:22-alpine
 
 RUN apk --no-cache add ca-certificates tzdata
 

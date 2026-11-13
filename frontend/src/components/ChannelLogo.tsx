@@ -78,6 +78,7 @@ export default function ChannelLogo({
   className?: string;
   title?: string;
 }) {
+  if (channel === "zcode") return <span title={title ?? "Zcode"} className={cn("inline-flex shrink-0 items-center justify-center rounded bg-sky-600 font-bold text-white", className)} style={{ width: size, height: size, fontSize: size * 0.65 }}>Z</span>;
   if (channel === "codex" || channel === "antigravity" || channel === "claude") {
     const fileByChannel: Record<string, { file: string; alt: string }> = {
       codex: { file: "codex-color", alt: "Codex" },

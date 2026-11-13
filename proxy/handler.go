@@ -518,6 +518,10 @@ func (h *Handler) applyUpstreamChannelFilterWithGate(c *gin.Context, effectiveMo
 	switch requestUpstreamChannel(c) {
 	case database.UpstreamChannelGrok:
 		return combine(grokChannelAccountFilterWithGate(effectiveModel, gate))
+	case database.UpstreamChannelZcode:
+		return combine(func(account *auth.Account) bool {
+			return account != nil && account.IsZcode() && !gate.blocks(account, effectiveModel) && claudeAccountSupportsModel(account, effectiveModel)
+		})
 	case database.UpstreamChannelAntigravity:
 		return combine(antigravityChannelAccountFilterWithGate(effectiveModel, gate))
 	case database.UpstreamChannelClaude:
@@ -540,7 +544,7 @@ func claudeChannelAccountFilter(model string) auth.AccountFilter {
 func claudeChannelAccountFilterWithGate(model string, gate modelRateLimitGate) auth.AccountFilter {
 	model = strings.TrimSpace(model)
 	return func(account *auth.Account) bool {
-		return account != nil && account.IsClaudeOAuth() &&
+		return account != nil && account.IsClaudeOAuth() && !account.IsZcode() &&
 			!gate.blocks(account, model) && claudeAccountSupportsModel(account, model)
 	}
 }
@@ -1704,6 +1708,8 @@ func (h *Handler) logUsage(input *database.UsageLogInput) {
 					input.Channel = database.UpstreamChannelGrok
 				case acc.IsAntigravityAPI():
 					input.Channel = database.UpstreamChannelAntigravity
+				case acc.IsZcode():
+					input.Channel = database.UpstreamChannelZcode
 				case acc.IsClaudeOAuth():
 					input.Channel = database.UpstreamChannelClaude
 				}
