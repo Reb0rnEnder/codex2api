@@ -280,7 +280,11 @@ func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL 
 	if err != nil {
 		return 0, err
 	}
-	credentials := map[string]interface{}{"upstream_type": auth.UpstreamZcode, "zcode": "true", "zcode_device_id": device, "access_token": token, "expires_at": expiry.UTC().Format(time.RFC3339), "claude_auth_kind": auth.ClaudeAuthKindAPIKey, "claude_base_url": auth.ZcodeBaseURL, "plan_type": quota.Plan, "models": quota.Models, "zcode_quota": string(quota.Balances)}
+	expiresAt := ""
+	if !expiry.IsZero() {
+		expiresAt = expiry.UTC().Format(time.RFC3339)
+	}
+	credentials := map[string]interface{}{"upstream_type": auth.UpstreamZcode, "zcode": "true", "zcode_device_id": device, "access_token": token, "expires_at": expiresAt, "claude_auth_kind": auth.ClaudeAuthKindAPIKey, "claude_base_url": auth.ZcodeBaseURL, "plan_type": quota.Plan, "models": quota.Models, "zcode_quota": string(quota.Balances)}
 	h.mergeDuplicateMu.Lock()
 	defer h.mergeDuplicateMu.Unlock()
 	rows, listErr := h.db.ListActiveByChannel(ctx, database.UpstreamChannelZcode)

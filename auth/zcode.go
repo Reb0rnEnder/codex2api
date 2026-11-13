@@ -37,13 +37,22 @@ func ZcodeTokenExpiry(token string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, fmt.Errorf("Invalid Zcode JWT")
 	}
-	var claims struct {
-		Exp int64 `json:"exp"`
+	var claims map[string]json.RawMessage
+	if json.Unmarshal(b, &claims) != nil || claims == nil {
+		return time.Time{}, fmt.Errorf("Invalid Zcode JWT")
 	}
-	if json.Unmarshal(b, &claims) != nil || claims.Exp <= 0 {
-		return time.Time{}, fmt.Errorf("Zcode JWT is missing its expiry")
+	// Zcode can issue tokens without exp. Their validity is checked against
+	// the authenticated billing endpoint when adding the account. A zero time
+	// means unknown expiry, not a fabricated lifetime or a refresh deadline.
+	raw, exists := claims["exp"]
+	if !exists || string(raw) == "null" {
+		return time.Time{}, nil
 	}
-	expiry := time.Unix(claims.Exp, 0)
+	var exp int64
+	if json.Unmarshal(raw, &exp) != nil {
+		return time.Time{}, fmt.Errorf("Invalid Zcode JWT expiry")
+	}
+	expiry := time.Unix(exp, 0)
 	if !expiry.After(time.Now()) {
 		return time.Time{}, fmt.Errorf("Zcode JWT has expired; sign in again")
 	}

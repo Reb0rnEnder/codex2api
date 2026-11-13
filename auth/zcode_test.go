@@ -25,6 +25,36 @@ func TestZcodeJWTValidation(t *testing.T) {
 	}
 }
 
+func TestZcodeJWTWithoutExpiry(t *testing.T) {
+	for _, payload := range []string{`{"sub":"test-user"}`, `{"sub":"test-user","exp":null}`} {
+		token := "header." + base64.RawURLEncoding.EncodeToString([]byte(payload)) + ".signature"
+		expiry, err := ZcodeTokenExpiry(token)
+		if err != nil || !expiry.IsZero() {
+			t.Fatalf("missing expiry must remain unknown: expiry=%v err=%v", expiry, err)
+		}
+	}
+	for _, payload := range []string{`null`, `[]`, `{"exp":"invalid"}`, `{"exp":false}`, `{"exp":0}`} {
+		if _, err := ZcodeTokenExpiry("header." + base64.RawURLEncoding.EncodeToString([]byte(payload)) + ".signature"); err == nil {
+			t.Fatal("invalid payload or expired token accepted")
+		}
+	}
+}
+
+func TestZcodeAccountWithoutExpiryReload(t *testing.T) {
+	store, db, id, _ := codexRefreshFixture(t, func(http.ResponseWriter, *http.Request) { t.Fatal("unexpected OAuth refresh") })
+	if err := db.UpdateCredentials(context.Background(), id, map[string]any{"upstream_type": UpstreamZcode, "zcode": "true", "refresh_token": "", "claude_auth_kind": ClaudeAuthKindAPIKey, "expires_at": "", "models": []string{"GLM-5.3"}}); err != nil {
+		t.Fatal(err)
+	}
+	store.RemoveAccount(id)
+	if err := store.LoadAccountByID(context.Background(), id); err != nil {
+		t.Fatal(err)
+	}
+	a := store.FindByID(id)
+	if a == nil || !a.IsZcode() || !a.ExpiresAt.IsZero() || store.shouldBackgroundRefresh(a, false) {
+		t.Fatal("unknown token expiry was not retained safely")
+	}
+}
+
 func TestZcodeStableDeviceAndSessionIdentity(t *testing.T) {
 	first := "header." + base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"user-1","exp":1900000000}`)) + ".sig"
 	second := "header." + base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"user-1","exp":1900000100}`)) + ".other"

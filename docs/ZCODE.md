@@ -8,7 +8,7 @@ Supported client endpoints are `/v1/messages`, `/v1/chat/completions`, and `/v1/
 
 The account's GLM model list comes from its billing balances. Zcode-specific request headers and system blocks follow the protocol documented in [D3-vin/Zcode2Api](https://github.com/D3-vin/Zcode2Api), inspected at commit `b2bbe39c6fa8e6cd69f13325c14228c6b280def7`. Client system instructions are preserved inside the final Zcode system block. A stable device ID is stored with the account. The upstream token limit is clamped to 131072; model casing, string message content, adaptive thinking, and reasoning effort are normalized for Zcode.
 
-JWT expiration is retained across reloads. The reference login flow returns a JWT rather than a renewable refresh token, so an expired Zcode account requires signing in again. Codex and Anthropic OAuth refresh/probes are not used for it. Existing gateway scheduling and HTTP error handling still apply.
+JWT expiration is retained across reloads when supplied. Tokens without an `exp` claim are accepted after authenticated billing verification and keep an unknown expiry; upstream authentication errors still apply. The reference login flow returns a JWT rather than a renewable refresh token, so an expired Zcode account requires signing in again. Codex and Anthropic OAuth refresh/probes are not used for it. Existing gateway scheduling and HTTP error handling still apply.
 
 ### Claim offered plans
 
