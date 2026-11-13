@@ -2,6 +2,8 @@
 
 Open **Accounts > Zcode > Add Zcode account**. Start browser sign-in, open the Z.AI authorization link, and keep the dialog open. The server polls and adds the account when authorization succeeds. Sessions expire after five minutes. You can also import an existing Zcode account JWT; this is different from a Z.AI API key.
 
+Browser sign-in saves the email returned in the authorization result. Token imports use an email claim when present. For an existing account without either source of email, sign in again once to populate it. Connection tests use the account's GLM billing models (including GLM-5.3-Flash), with an editable test prompt in the shared test dialog. Proxy, tags, concurrency, and scheduling priority use the existing account editor.
+
 Use a **Zcode channel** API key for these accounts. They use an independent Zcode provider, account pool, API-key channel, group channel, and GLM model allowlist. Requests go directly to `https://zcode.z.ai/api/v1/zcode-plan/anthropic/v1/messages`, not to Anthropic or to a separately running Zcode2Api server.
 
 Supported client endpoints are `/v1/messages`, `/v1/chat/completions`, and `/v1/responses`, with streaming and non-streaming output. The OpenAI endpoints reuse the existing Messages/Responses converters. Text and tool calls use those existing converters; provider-specific fields can have additional limits. Compact, WebSocket ingress, image generation, and hosted tools are not implemented for Zcode.

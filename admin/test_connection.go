@@ -149,7 +149,7 @@ func (h *Handler) testConnection(c *gin.Context, quality *qualityTestRequest) {
 	}
 	testModel, err := h.connectionTestModelForAccount(c.Request.Context(), account, requestedModel)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	prompt := c.Query("prompt")
@@ -978,6 +978,23 @@ func defaultGrokConnectionTestModels(account *auth.Account) []string {
 
 func (h *Handler) connectionTestModelForAccount(ctx context.Context, account *auth.Account, requested string) (string, error) {
 	requested = strings.TrimSpace(requested)
+	if account != nil && account.IsZcode() {
+		models := claudeProbeModelIDs(account)
+		if requested != "" {
+			for _, model := range models {
+				if strings.EqualFold(model, requested) {
+					return model, nil
+				}
+			}
+			return "", fmt.Errorf("This Zcode account does not support test model: %s", requested)
+		}
+		for _, model := range models {
+			if !account.IsModelRateLimited(model) {
+				return model, nil
+			}
+		}
+		return "", fmt.Errorf("This Zcode account has no text models available for a connection test")
+	}
 	if account != nil && account.IsClaudeOAuth() {
 		models := claudeProbeModelIDs(account)
 		if requested != "" {

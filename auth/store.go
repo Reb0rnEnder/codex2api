@@ -6413,6 +6413,9 @@ func (s *Store) buildAccountFromRow(ctx context.Context, row *database.AccountRo
 		account.AccessToken = at
 		account.AccountID = row.GetCredential("account_id")
 		account.Email = row.GetCredential("email")
+		if account.Zcode && account.Email == "" {
+			account.Email = ZcodeTokenEmail(at)
+		}
 		if !isGrokAccount {
 			account.PlanType = row.GetCredential("plan_type")
 		}

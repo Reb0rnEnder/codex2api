@@ -62,7 +62,7 @@ func (h *Handler) channelTestModelChoices() map[string][]string {
 			switch {
 			case account.IsAntigravityAPI():
 				antigravity = appendUnique(antigravity, seenAG, antigravityConnectionTestModels(account))
-			case account.IsClaudeOAuth():
+			case account.IsClaudeOAuth() && !account.IsZcode():
 				claude = appendUnique(claude, seenClaude, claudeProbeModelIDs(account))
 			}
 		}
@@ -109,7 +109,7 @@ func (h *Handler) channelTestSettingsForAccount(ctx context.Context, account *au
 	switch {
 	case account.IsAntigravityAPI():
 		return cfg.Antigravity
-	case account.IsClaudeOAuth():
+	case account.IsClaudeOAuth() && !account.IsZcode():
 		return cfg.Claude
 	}
 	return database.ChannelTestSettings{}

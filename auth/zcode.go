@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -78,6 +79,40 @@ func ZcodeDeviceID(token string) string {
 func ZcodeSessionID(deviceID string) string {
 	sum := sha256.Sum256([]byte("zcode-session." + deviceID))
 	return "session_" + hex.EncodeToString(sum[:16])
+}
+
+// Email is display metadata only; the upstream verifies the token itself.
+func NormalizeZcodeEmail(value string) string {
+	value = strings.TrimSpace(value)
+	parsed, err := mail.ParseAddress(value)
+	if err != nil || parsed.Address != value || len(value) > 254 {
+		return ""
+	}
+	return value
+}
+
+func ZcodeTokenEmail(token string) string {
+	parts := strings.Split(strings.TrimSpace(token), ".")
+	if len(parts) != 3 {
+		return ""
+	}
+	data, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return ""
+	}
+	var claims struct {
+		Email string `json:"email"`
+		User  struct {
+			Email string `json:"email"`
+		} `json:"user"`
+	}
+	if json.Unmarshal(data, &claims) != nil {
+		return ""
+	}
+	if email := NormalizeZcodeEmail(claims.Email); email != "" {
+		return email
+	}
+	return NormalizeZcodeEmail(claims.User.Email)
 }
 
 func ZcodeHeaders(token, deviceID string) http.Header {

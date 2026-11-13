@@ -717,6 +717,9 @@ func (h *Handler) buildAccountListSnapshotItem(row *database.AccountRow, request
 	isOpenAIResponses := strings.EqualFold(upstreamType, auth.UpstreamOpenAIResponses)
 	isClaude := strings.EqualFold(upstreamType, auth.UpstreamClaude)
 	email := row.GetCredential("email")
+	if email == "" && row.GetCredential("zcode") == "true" {
+		email = auth.ZcodeTokenEmail(row.GetCredential("access_token"))
+	}
 	if isOpenAIResponses && email == "" {
 		email = row.GetCredential("base_url")
 	}

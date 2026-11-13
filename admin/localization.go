@@ -12,6 +12,8 @@ func localizeAdminError(language, message string) string {
 		return translated
 	}
 	for _, pair := range [][2]string{
+		{"该 Claude 账号不支持测试模型: ", "This Claude account does not support test model: "},
+		{"该 Claude 账号的持久化模型清单不支持测试模型: ", "This Claude account's saved model list does not support test model: "},
 		{"该账号不支持测试模型: ", "This account does not support test model: "},
 		{"不支持的测试模型: ", "Unsupported test model: "},
 		{"该 Responses API 账号没有可用于测试的文本模型", "This account has no text models available for a connection test"},

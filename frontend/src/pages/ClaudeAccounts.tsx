@@ -2397,7 +2397,7 @@ function ClaudeAccountRow({
       onSelect: onRefreshModels,
     },
     { key: "delete", label: t("accounts.deleteAccount"), icon: <Trash2 className="size-3.5" />, destructive: true, onSelect: onDelete },
-  ].filter(item => !acc.zcode || !["export", "edit", "edit-models"].includes(item.key));
+  ].filter(item => !acc.zcode || !["export", "edit-models"].includes(item.key));
 
   return (
     <TableRow
@@ -2624,7 +2624,7 @@ function ClaudeAccountRow({
       <TableCell data-account-actions className="text-right">
         <div className="flex items-center justify-end gap-0.5">
           <div className="hidden items-center gap-0.5 @4xl/claude-accounts:flex">
-          <Button variant="ghost" size="icon-sm" className="size-8" disabled={Boolean(acc.zcode)} onClick={onEdit} title={t("claude.editTitle")} aria-label={t("claude.editTitle")}>
+          <Button variant="ghost" size="icon-sm" className="size-8" onClick={onEdit} title={t("claude.editTitle")} aria-label={t("claude.editTitle")}>
             <Pencil className="size-3.5" />
           </Button>
           <Button variant="ghost" size="icon-sm" className="size-8" onClick={onUsage} title={t("accounts.usageDetail")} aria-label={t("accounts.usageDetail")}>
@@ -3033,11 +3033,11 @@ function EditAccountModal({
   const [fpMode, setFpMode] = useState<"" | "preserve" | "force">(
     (account.claude_fingerprint_mode as "" | "preserve" | "force") ?? "",
   );
-  const isAPIKeyAccount = account.claude_auth_kind === "api_key";
+  const isAPIKeyAccount = Boolean(account.zcode) || account.claude_auth_kind === "api_key";
   // API Key 账号的自定义出站请求头(issue #647)。列表行不带 custom_headers(仅详情
   // 响应携带),弹窗打开时按需拉一次详情回填,避免把空文本框当成"清空"保存。
   const [customHeadersText, setCustomHeadersText] = useState(() => formatCustomHeadersText(account.custom_headers));
-  const [customHeadersLoaded, setCustomHeadersLoaded] = useState(!isAPIKeyAccount || account.detail_loaded === true || account.custom_headers !== undefined);
+  const [customHeadersLoaded, setCustomHeadersLoaded] = useState(Boolean(account.zcode) || !isAPIKeyAccount || account.detail_loaded === true || account.custom_headers !== undefined);
   useEffect(() => {
     if (customHeadersLoaded) return;
     let cancelled = false;
@@ -3078,7 +3078,7 @@ function EditAccountModal({
   const save = useCallback(async () => {
     // API Key 账号:自定义头必须是字符串到字符串的 JSON 对象;空文本 = 清空。
     let apiKeyCustomHeaders: Record<string, string> | null = null;
-    if (isAPIKeyAccount) {
+    if (isAPIKeyAccount && !account.zcode) {
       const parsed = parseCustomHeadersText(customHeadersText);
       if (!parsed.ok) {
         showToast(t("claude.customHeadersInvalid"), "error");
@@ -3106,11 +3106,11 @@ function EditAccountModal({
         claude_version_policy: versionPolicy || null,
         claude_client_version: clientVersion.trim() || null,
         timezone: timezone.trim(),
-        } : {
+        } : !account.zcode ? {
         // API Key:claude_fingerprint_mode 语义为 Claude Code 客户端身份仿真开关。
         claude_fingerprint_mode: fpMode,
         ...(customHeadersLoaded ? { custom_headers: apiKeyCustomHeaders } : {}),
-        }),
+        } : {}),
       });
       showToast(t("claude.saved"), "success");
       // 手动输入的代理若不在代理管理中,询问是否存入(需在关闭弹窗前完成)。
@@ -3121,7 +3121,7 @@ function EditAccountModal({
     } finally {
       setBusy(false);
     }
-  }, [account.id, isAPIKeyAccount, customHeadersText, customHeadersLoaded, proxyUrl, proxies, confirm, tags, priority, scoreBias, concurrency, pause5h, pause7d, fpMode, clientPlatform, versionPolicy, clientVersion, timezone, onSaved, showToast, t]);
+  }, [account.id, account.zcode, isAPIKeyAccount, customHeadersText, customHeadersLoaded, proxyUrl, proxies, confirm, tags, priority, scoreBias, concurrency, pause5h, pause7d, fpMode, clientPlatform, versionPolicy, clientVersion, timezone, onSaved, showToast, t]);
 
   const field = (label: string, node: ReactNode, hint?: string) => (
     <div className="space-y-1">
@@ -3169,7 +3169,7 @@ function EditAccountModal({
             <ProxyField value={proxyUrl} onChange={setProxyUrl} proxies={proxies} label="" />,
             t("claude.proxyHint"),
           )}
-          {isAPIKeyAccount ? <>
+          {isAPIKeyAccount && !account.zcode ? <>
           {field(
             t("claude.apiKeyIdentityLabel"),
             <Select

@@ -147,6 +147,9 @@ func (h *Handler) PollZcodeLogin(c *gin.Context) {
 		Data struct {
 			Status string `json:"status"`
 			Token  string `json:"token"`
+			User   struct {
+				Email string `json:"email"`
+			} `json:"user"`
 		} `json:"data"`
 	}
 	if err := zcodeJSON(ctx, http.MethodGet, auth.ZcodeBaseURL+"/api/v1/oauth/cli/poll/"+url.PathEscape(flow.FlowID), flow.PollToken, flow.ProxyURL, "", &response); err != nil {
@@ -170,7 +173,7 @@ func (h *Handler) PollZcodeLogin(c *gin.Context) {
 		c.JSON(200, gin.H{"status": status})
 		return
 	}
-	id, err := h.createZcodeAccount(ctx, response.Data.Token, flow.Name, flow.ProxyURL)
+	id, err := h.createZcodeAccount(ctx, response.Data.Token, flow.Name, flow.ProxyURL, response.Data.User.Email)
 	if err != nil {
 		writeError(c, 502, err.Error())
 		return
@@ -194,7 +197,7 @@ func (h *Handler) AddZcodeAccount(c *gin.Context) {
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
 	defer cancel()
-	id, err := h.createZcodeAccount(ctx, input.Token, input.Name, input.ProxyURL)
+	id, err := h.createZcodeAccount(ctx, input.Token, input.Name, input.ProxyURL, "")
 	if err != nil {
 		writeError(c, 400, err.Error())
 		return
@@ -258,11 +261,15 @@ func (h *Handler) ClaimZcodePlans(c *gin.Context) {
 	c.JSON(200, report)
 }
 
-func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL string) (int64, error) {
+func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL, loginEmail string) (int64, error) {
 	token = strings.TrimSpace(token)
 	expiry, err := auth.ZcodeTokenExpiry(token)
 	if err != nil {
 		return 0, err
+	}
+	email := auth.ZcodeTokenEmail(token)
+	if normalized := auth.NormalizeZcodeEmail(loginEmail); normalized != "" {
+		email = normalized
 	}
 	name = security.SanitizeInput(strings.TrimSpace(name))
 	if name == "" {
@@ -285,6 +292,9 @@ func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL 
 		expiresAt = expiry.UTC().Format(time.RFC3339)
 	}
 	credentials := map[string]interface{}{"upstream_type": auth.UpstreamZcode, "zcode": "true", "zcode_device_id": device, "access_token": token, "expires_at": expiresAt, "claude_auth_kind": auth.ClaudeAuthKindAPIKey, "claude_base_url": auth.ZcodeBaseURL, "plan_type": quota.Plan, "models": quota.Models, "zcode_quota": string(quota.Balances)}
+	if email != "" {
+		credentials["email"] = email
+	}
 	h.mergeDuplicateMu.Lock()
 	defer h.mergeDuplicateMu.Unlock()
 	rows, listErr := h.db.ListActiveByChannel(ctx, database.UpstreamChannelZcode)
@@ -292,7 +302,26 @@ func (h *Handler) createZcodeAccount(ctx context.Context, token, name, proxyURL 
 		return 0, fmt.Errorf("Unable to check existing Zcode accounts")
 	}
 	for _, row := range rows {
-		if row.GetCredential("zcode") == "true" && row.GetCredential("access_token") == token {
+		if row.GetCredential("zcode") == "true" && (row.GetCredential("access_token") == token || row.GetCredential("zcode_device_id") == device) {
+			if err := h.db.UpdateCredentials(ctx, row.ID, credentials); err != nil {
+				return 0, fmt.Errorf("Unable to update Zcode account")
+			}
+			if acc := h.store.FindByID(row.ID); acc != nil {
+				acc.Mu().Lock()
+				acc.AccessToken = token
+				acc.ZcodeDeviceID = device
+				if email != "" {
+					acc.Email = email
+				}
+				acc.Models = append([]string(nil), quota.Models...)
+				acc.PlanType = quota.Plan
+				acc.ExpiresAt = expiry
+				acc.Mu().Unlock()
+			} else if err := h.store.LoadAccountByID(ctx, row.ID); err != nil {
+				return 0, err
+			}
+			h.invalidateClaudeCatalogCaches()
+			h.expireAccountListSnapshot(database.UpstreamChannelZcode)
 			return row.ID, nil
 		}
 	}

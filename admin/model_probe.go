@@ -232,6 +232,15 @@ func (h *Handler) probeAccountModel(ctx context.Context, account *auth.Account, 
 }
 
 func claudeProbeModelIDs(account *auth.Account) []string {
+	if account != nil && account.IsZcode() {
+		models := []string{}
+		for _, model := range account.CodexModels() {
+			if strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), "glm-") {
+				models = append(models, strings.TrimSpace(model))
+			}
+		}
+		return auth.NormalizeOpenAIResponsesModels(models)
+	}
 	models := proxy.DefaultClaudeModelIDsForAccount(account)
 	filtered := make([]string, 0, len(models))
 	seen := make(map[string]struct{}, len(models))

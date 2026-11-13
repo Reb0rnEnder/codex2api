@@ -29,6 +29,8 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
   const [errorMessage, setErrorMessage] = useState("");
   const [diagnostics, setDiagnostics] = useState<ClaudeTestDiagnostics | null>(null);
   const [copied, setCopied] = useState(false);
+  const [testContent, setTestContent] = useState("hi");
+  const userEditedContentRef = useRef(false);
   const [detectorOpen, setDetectorOpen] = useState(false);
   const settledRef = useRef(false);
   const controllerRef = useRef<AbortController | null>(null);
@@ -57,7 +59,11 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
   useEffect(() => {
     let active = true;
     void api.getChannelTestSettings().then((settings) => {
-      if (!active || userPickedRef.current) return;
+      if (!active) return;
+      if (!userEditedContentRef.current) {
+        setTestContent((!account.zcode && settings.claude.test_content) || settings.default_test_content || "hi");
+      }
+      if (account.zcode || userPickedRef.current) return;
       const preferred = settings.claude.test_model.trim().toLowerCase();
       if (!preferred || cooled.has(preferred)) return;
       const match = modelOptions.find((item) => item.toLowerCase() === preferred);
@@ -81,7 +87,7 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
   const startTest = useCallback(() => {
-    if (!model) return;
+    if (!model || !testContent.trim()) return;
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -96,7 +102,7 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
     const run = async () => {
       const translate = translationRef.current;
       try {
-        const query = new URLSearchParams({ model });
+        const query = new URLSearchParams({ model, prompt: testContent });
         const key = getAdminKey();
         const response = await fetch(`/api/admin/accounts/${account.id}/test?${query.toString()}`, {
           signal: controller.signal,
@@ -147,7 +153,7 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
       }
     };
     void run();
-  }, [account.id, model, markSettled]);
+  }, [account.id, model, testContent, markSettled]);
 
   const metrics = claudeTestTokenMetrics(diagnostics?.usage);
   const tokenLabels = {
@@ -206,7 +212,7 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
             </Button>
           </div>
           <Button variant="outline" size="sm" onClick={onClose}>{t("common.close")}</Button>
-          <Button size="sm" disabled={running || !model} onClick={startTest}>
+          <Button size="sm" disabled={running || !model || !testContent.trim()} onClick={startTest}>
             <RefreshCw className={cn("size-3.5", running && "animate-spin")} />{t(status === "idle" ? "accounts.testStart" : "claude.testRetry")}
           </Button>
         </div>
@@ -217,9 +223,21 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
           <StatusIcon className={cn("size-5 shrink-0", running ? "animate-spin text-primary" : status === "idle" ? "text-muted-foreground" : status === "success" ? "text-emerald-500" : "text-destructive")} />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-foreground" role="status">{statusLabel}</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Claude · Messages API</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{account.zcode ? "Zcode" : "Claude"} · Messages API</p>
           </div>
-          <Select compact className="w-full min-w-0 sm:w-60" value={model} onValueChange={(value) => { userPickedRef.current = true; setModel(value); }} disabled={running} options={modelOptions.map((item) => ({ value: item, label: cooled.has(item.toLowerCase()) ? `${item} · ${t("claude.testModelCooling")}` : item }))} />
+          <Select compact aria-label={t("settings.testModel")} className="w-full min-w-0 sm:w-60" value={model} onValueChange={(value) => { userPickedRef.current = true; setModel(value); }} disabled={running} options={modelOptions.map((item) => ({ value: item, label: cooled.has(item.toLowerCase()) ? `${item} · ${t("claude.testModelCooling")}` : item }))} />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="messages-account-test-content" className="text-sm font-medium">{t("settings.testContent")}</label>
+          <textarea
+            id="messages-account-test-content"
+            className="w-full resize-y rounded-xl border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            rows={4}
+            value={testContent}
+            onChange={(event) => { userEditedContentRef.current = true; setTestContent(event.target.value); }}
+            disabled={running}
+          />
         </div>
 
         {alertMessage ? <div role="alert" className="break-words rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs leading-relaxed text-destructive">{alertMessage}</div> : null}
@@ -235,7 +253,7 @@ export default function ClaudeConnectionTestModal({ account, onClose, onSettled 
 
         <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
           <div className="min-w-0"><dt className="text-muted-foreground">{t("claude.testResponseModel")}</dt><dd className="mt-1 break-all font-mono">{diagnostics?.response_model || "—"}</dd></div>
-          <div className="min-w-0"><dt className="text-muted-foreground">{t("claude.fingerprintModeLabel")}</dt><dd className="mt-1">{modeLabel}</dd></div>
+          {!account.zcode ? <div className="min-w-0"><dt className="text-muted-foreground">{t("claude.fingerprintModeLabel")}</dt><dd className="mt-1">{modeLabel}</dd></div> : null}
           {identity.map((item) => (
             <div key={item.label} className="min-w-0"><dt className="text-muted-foreground">{item.label}</dt><dd className="mt-1 break-all font-mono text-[11px] leading-relaxed">{item.value}</dd></div>
           ))}

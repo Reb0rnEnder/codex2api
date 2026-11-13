@@ -97,6 +97,9 @@ func (h *Handler) buildAccountResponse(
 		}
 	}
 	email := row.GetCredential("email")
+	if email == "" && row.GetCredential("zcode") == "true" {
+		email = auth.ZcodeTokenEmail(row.GetCredential("access_token"))
+	}
 	baseURL := row.GetCredential("base_url")
 	if isOpenAIResponsesAccount && email == "" {
 		email = baseURL

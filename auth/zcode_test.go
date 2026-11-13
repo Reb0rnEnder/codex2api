@@ -40,6 +40,21 @@ func TestZcodeJWTWithoutExpiry(t *testing.T) {
 	}
 }
 
+func TestZcodeTokenEmail(t *testing.T) {
+	for _, tc := range []struct{ payload, email string }{
+		{`{"email":"fixture@example.test"}`, "fixture@example.test"},
+		{`{"user":{"email":"fixture@example.test"}}`, "fixture@example.test"},
+		{`{"sub":"user-id"}`, ""},
+		{`{"email":"<script>alert(1)</script>"}`, ""},
+		{`{"email":123}`, ""},
+	} {
+		token := "header." + base64.RawURLEncoding.EncodeToString([]byte(tc.payload)) + ".signature"
+		if got := ZcodeTokenEmail(token); got != tc.email {
+			t.Fatalf("email=%q want %q", got, tc.email)
+		}
+	}
+}
+
 func TestZcodeAccountWithoutExpiryReload(t *testing.T) {
 	store, db, id, _ := codexRefreshFixture(t, func(http.ResponseWriter, *http.Request) { t.Fatal("unexpected OAuth refresh") })
 	if err := db.UpdateCredentials(context.Background(), id, map[string]any{"upstream_type": UpstreamZcode, "zcode": "true", "refresh_token": "", "claude_auth_kind": ClaudeAuthKindAPIKey, "expires_at": "", "models": []string{"GLM-5.3"}}); err != nil {

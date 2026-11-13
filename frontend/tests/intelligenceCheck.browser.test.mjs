@@ -66,10 +66,11 @@ async function fixture(t, options = {}) {
    const account = { id: 1, name: '本地 Codex 测试账号', email: 'fixture@example.test', account_type: 'oauth', status: 'active', enabled: true, health_tier: 'healthy', created_at: '2026-10-15T12:00:00Z', group_ids: [], models: ['gpt-6-astra'], detail_loaded: true, usage_percent_7d: 12, active_requests: 2, dynamic_concurrency_limit: 200, ...options.accountOverrides }
    if (name === 'startBasisPointsOAuth') return {session_id:'bps-test',auth_url:'https://bps.openai.com/auth/start?state=synthetic'}
    if (name === 'completeBasisPointsOAuth') return {id:2}
-   if (name === 'getAccounts') return {accounts:[{...account,zcode:true,email:'',name:'Zcode fixture',models:['GLM-5.3']}]}
+   if (name === 'getAccounts') return {accounts:[{...account,zcode:true,email:'',name:'Zcode fixture',models:['GLM-5.3','GLM-5.3-Flash']}]}
    if (name === 'claimZcodePlans') return {plans:[{plan_id:'start',name:'Starter plan',status:'claimed'}]}
+   if (name === 'updateAccountScheduler') return {message:'Saved'}
    if (name === 'getVisibleChannels') return { channels: ['codex', 'claude'] }
-   if (name === 'getAccountsPage') return { accounts: [options.zcodePage ? {...account,zcode:true,email:'',name:'Zcode fixture',models:['GLM-5.3']} : account], total: 1, page: 1, page_size: 20, facets: { tags: [], email_domains: [] }, summary: { total: 1 } }
+   if (name === 'getAccountsPage') return { accounts: [options.zcodePage ? {...account,zcode:true,email:'',name:'Zcode fixture',models:['GLM-5.3','GLM-5.3-Flash']} : account], total: 1, page: 1, page_size: 20, facets: { tags: [], email_domains: [] }, summary: { total: 1 } }
    if (name === 'getAccount') return account
    if (name === 'getAccountHealthBars') return { buckets: {} }
    if (name === 'getIntelligenceBars') return { bars: { '1': window.__bar } }
@@ -79,6 +80,7 @@ async function fixture(t, options = {}) {
    if (name === 'getSettings') return {test_model:'gpt-6-astra',test_content:'hi'}
    if (name === 'getProxies') return { proxies: [] }
    if (name === 'getChannelMonitorBillingRates') return { rates: [] }
+   if (name === 'getChannelTestSettings') return {claude:{test_model:'claude-sonnet-4-6',test_content:'Claude only'},default_test_content:'hi'}
    if (name === 'getIntelligenceSettings') return window.__config
    if (name === 'listAccountGroups') return { groups: [{ id: 1, name: '隔离分组', channel: 'codex' }, { id: 2, name: 'Claude 隔离', channel: 'claude' }, { id: 3, name: 'Grok 隔离', channel: 'grok' }] }
    if (name === 'getIntelligenceAccounts') { if (options.error) throw new Error('本地模拟读取失败'); return { items: options.empty ? [] : accounts, total: options.empty ? 0 : 1, page: 1, page_size: 20 } }
@@ -405,4 +407,45 @@ test('BasisPoints test dialog selects its own model instead of the configured Co
  const page=await fixture(t,{bpsTest:true,language:'en'})
  await page.getByText('bps-test-model',{exact:true}).first().waitFor()
  assert.equal(await page.evaluate(()=>window.__calls.some(c=>c.name==='getModels')),false)
+})
+
+test('Zcode connection test sends the selected GLM model and custom prompt in the shared dialog', async t => {
+ const page=await fixture(t,{zcodePage:true,language:'en'})
+ await page.getByText('Zcode fixture',{exact:true}).first().waitFor()
+ await page.getByRole('button',{name:'Test Connection',exact:true}).first().click()
+ const dialog=page.getByRole('dialog')
+ await dialog.getByText('Zcode · Messages API',{exact:true}).waitFor()
+ assert.equal(await dialog.getByText('Claude · Messages API',{exact:true}).count(),0)
+ await dialog.getByRole('button',{name:'Test Model',exact:true}).click()
+ await page.getByRole('option',{name:'GLM-5.3-Flash',exact:true}).click()
+ const prompt=dialog.getByLabel('Test Content',{exact:true})
+ await prompt.fill('')
+ assert.equal(await dialog.getByRole('button',{name:'Start test',exact:true}).isDisabled(),true)
+ await prompt.fill('Reply with the word hello.\nKeep it short.')
+ await page.route('**/api/admin/accounts/1/test?**',route=>route.fulfill({contentType:'text/event-stream',body:'data: {"type":"content","text":"hello"}\n\ndata: {"type":"test_complete","success":true}\n\n'}))
+ const requestPromise=page.waitForRequest(r=>r.url().includes('/api/admin/accounts/1/test?'))
+ await dialog.getByRole('button',{name:'Start test',exact:true}).click()
+ const request=await requestPromise
+ const url=new URL(request.url())
+ assert.equal(url.searchParams.get('model'),'GLM-5.3-Flash')
+ assert.equal(url.searchParams.get('prompt'),'Reply with the word hello.\nKeep it short.')
+ assert.match(request.headers()['accept-language'],/^en/)
+ await dialog.getByText('hello',{exact:true}).waitFor()
+ await page.screenshot({path:path.join(artifactDir,'zcode-connection-custom-prompt.png'),fullPage:true})
+})
+
+test('Zcode uses the shared account editor for scheduling without Claude identity fields', async t => {
+ const page=await fixture(t,{zcodePage:true,language:'en'})
+ await page.getByText('Zcode fixture',{exact:true}).first().waitFor()
+ await page.getByRole('button',{name:'Edit account',exact:true}).first().click()
+ const dialog=page.getByRole('dialog')
+ await dialog.getByText('Scheduler priority',{exact:true}).waitFor()
+ assert.equal(await dialog.getByText('Client identity',{exact:true}).count(),0)
+ await dialog.getByRole('button',{name:'Save',exact:true}).click()
+ await dialog.waitFor({state:'hidden'})
+ const payload=await page.evaluate(()=>window.__calls.find(c=>c.name==='updateAccountScheduler').args[1])
+ assert.ok('scheduler_priority' in payload)
+ assert.ok('tags' in payload)
+ assert.ok('proxy_url' in payload)
+ assert.equal(Object.keys(payload).some(key=>key.startsWith('claude_')||key==='custom_headers'),false)
 })
