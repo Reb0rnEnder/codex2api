@@ -611,6 +611,13 @@ func TestUsageHourlyRollupRebuildsAfterDeletedRows(t *testing.T) {
 		t.Fatal("deleted rows must disable rollup reads")
 	}
 	db.repairUsageHourly(ctx)
+	// usageHourlyRollupUsable also wakes the background repair worker. If it
+	// won the reset, the explicit repair returns while its backfill is still
+	// running. Wait for the atomic ready state before comparing aggregates.
+	deadline := time.Now().Add(3 * time.Second)
+	for !db.usageHourlyRollupUsable(ctx) && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
 	assertUsageHourlyMatchesLogs(t, db)
 	if !db.usageHourlyRollupUsable(ctx) {
 		t.Fatal("rollup should be usable after the rebuild")
